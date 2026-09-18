@@ -179,7 +179,8 @@ html {
     .is-theme-transitioning:not(.use-view-transition) .widget,
     .is-theme-transitioning:not(.use-view-transition) .widget *,
     .is-theme-transitioning:not(.use-view-transition) .dropdown-content,
-    .is-theme-transitioning:not(.use-view-transition) .dropdown-content * {
+    .is-theme-transitioning:not(.use-view-transition) .dropdown-content *,
+    .is-theme-transitioning:not(.use-view-transition) .dropdown-menu {
         transition: none !important;
         animation: none !important;
     }
@@ -220,6 +221,7 @@ html {
 
     /* 导航栏相关浮动面板的过渡禁用 */
     .is-theme-transitioning .dropdown-content,
+    .is-theme-transitioning .dropdown-menu,
     .is-theme-transitioning .float-panel,
     .is-theme-transitioning #display-setting,
     .is-theme-transitioning #nav-menu-panel,
@@ -462,18 +464,23 @@ html {
         @apply text-black/25 dark:text-white/25
     }
 
-    /* 下拉菜单样式 */
+    /* 下拉菜单样式
+       显隐状态统一收敛到 .dropdown-menu 单一容器上（visibility/opacity/translate），
+       与参考站一致；.dropdown-content 只负责卡片外观，避免两层各管一半导致闭合时
+       仍可被读屏/焦点命中。 */
     .dropdown-container {
         @apply relative;
     }
 
     .dropdown-menu {
-        @apply absolute top-full left-0 pt-2 pointer-events-none z-50;
+        @apply absolute top-full left-0 pt-2 z-50
+        invisible opacity-0 translate-y-[-8px] pointer-events-none
+        transition-[opacity,visibility,translate] duration-200 ease-out;
     }
 
     .dropdown-container:hover .dropdown-menu,
     .dropdown-container:focus-within .dropdown-menu {
-        @apply pointer-events-auto;
+        @apply visible opacity-100 translate-y-0 pointer-events-auto;
     }
 
     .dropdown-container:hover .dropdown-arrow,
@@ -483,12 +490,7 @@ html {
 
     .dropdown-content {
         @apply bg-(--card-bg) rounded-(--radius-large) shadow-xl border border-black/5 dark:border-white/10 py-2 min-w-48
-        opacity-0 translate-y-[-8px] transition-[opacity,translate,background-color,border-color] duration-200 ease-out;
-    }
-
-    .dropdown-container:hover .dropdown-content,
-    .dropdown-container:focus-within .dropdown-content {
-        @apply opacity-100 translate-y-0;
+        transition-colors duration-150;
     }
 
     .dropdown-item {
@@ -516,16 +518,12 @@ html {
         @apply rotate-180;
     }
 
-    /* 响应式隐藏 */
-    @media (max-width: 768px) {
+    /* 响应式隐藏：桌面菜单容器在 lg(1024px) 隐藏，故下拉容器需同步用 1023px，
+       否则 768–1023px 区间会出现「汉堡按钮 + 桌面下拉」并存。 */
+    @media (max-width: 1023px) {
         .dropdown-container {
             @apply hidden;
         }
-    }
-
-    /* 无障碍支持 */
-    .dropdown-container:focus-within .dropdown-menu {
-        @apply pointer-events-auto;
     }
 
     .meta-icon {

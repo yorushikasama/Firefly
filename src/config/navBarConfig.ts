@@ -16,25 +16,11 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 	// 主页
 	links.push(LinkPresets.Home);
 
-	// 文章及其子菜单
-	links.push({
-		name: "文章",
-		url: "#",
-		icon: "material-symbols:article",
-		children: [
-			// 归档
-			LinkPresets.Archive,
-
-			// 分类
-			LinkPresets.Categories,
-
-			// 标签
-			LinkPresets.Tags,
-
-			// 系列
-			LinkPresets.Series,
-		],
-	});
+	// 文章相关页面：平铺为顶级直链（学习参考站：常用页面直链，减少嵌套下拉）
+	links.push(LinkPresets.Archive);
+	links.push(LinkPresets.Categories);
+	links.push(LinkPresets.Tags);
+	links.push(LinkPresets.Series);
 
 	//社交及其子菜单
 	links.push({

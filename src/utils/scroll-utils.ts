@@ -10,9 +10,6 @@ import { updateSidebarStickySpacing } from "@/utils/grid-layout-utils";
 const backToTopBtn = document.getElementById("back-to-top-btn");
 const navbar = document.getElementById("navbar-wrapper");
 
-// 动态导航栏：记录上一次滚动位置，用于判断滚动方向（下滑隐藏 / 上滑显示）
-let lastScrollTop = 0;
-
 /** 优化的滚动处理函数（从 Layout.astro 迁出；visit:end 切页后也会调用） */
 export function scrollFunction(): void {
 	if (document.documentElement.classList.contains("is-page-transitioning")) {
@@ -44,26 +41,23 @@ export function scrollFunction(): void {
 			navbar.classList.remove("navbar-hidden");
 		});
 	} else if (navbarMode === "dynamic" && navbar) {
-		// 动态：下滑隐藏 / 轻微上滑立即显示 / 滚回顶部(<80px)常显
-		const delta = scrollTop - lastScrollTop;
-		lastScrollTop = scrollTop;
+		// 动态：跨壁纸/hero 保持显示；越过壁纸底部（阈值）后下滑隐藏，回到阈值以上再显示。
+		// 与 static 分支共用绝对阈值逻辑，行为对齐参考站（blog.moewah.com）：
+		// 只有滚过横幅底部才隐藏导航栏，而非一往下滚就立刻隐藏。
 		operations.push(() => {
 			const isHome = document.body.classList.contains("is-home");
-			// 壁纸/hero 边界：banner 首页 65vh、非首页 45vh；fullscreen 仅首页整屏（100lvh），非首页无 hero 为 0。
-			// 越过该边界才启用「下滑隐藏 / 上滑显示」。overHero 不 gate isHome，故非首页 banner 也会跨壁纸保持
-			const heroBoundary = isFullscreenMode()
-				? isHome
-					? window.innerHeight
-					: 0
+			const threshold = isFullscreenMode()
+				? window.innerHeight - 88
 				: isBannerMode()
 					? window.innerHeight *
-						((isHome ? BANNER_HEIGHT_HOME : BANNER_HEIGHT_NON_HOME) / 100)
+							((isHome ? BANNER_HEIGHT_HOME : BANNER_HEIGHT_NON_HOME) / 100) -
+						88
 					: 0;
-			const overHero = scrollTop < heroBoundary;
-			if (overHero || delta < 0 || scrollTop <= 80) {
-				navbar.classList.remove("navbar-hidden");
-			} else if (delta > 0 && scrollTop > 150) {
+
+			if (scrollTop >= threshold) {
 				navbar.classList.add("navbar-hidden");
+			} else {
+				navbar.classList.remove("navbar-hidden");
 			}
 			document.body.classList.toggle(
 				"dynamic-navbar-hidden",

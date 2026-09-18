@@ -422,10 +422,9 @@ export function updateNavbarTransparency(mode: WALLPAPER_MODE): void {
 		transparentMode = fsMode === "semifull" && isHomePage ? "semifull" : "semi";
 		blurAmount = glassBlur;
 	} else {
-		// Banner模式：semifull 仅首页动态，非首页与 fullscreen 一致为半透明
-		const isHomePage = checkIsHomePage(window.location.pathname);
+		// Banner模式：semifull 动态透明，首页非首页均生效（对齐参考站）
 		const tMode = backgroundWallpaper.banner?.navbar?.transparentMode || "semi";
-		transparentMode = tMode === "semifull" && !isHomePage ? "semi" : tMode;
+		transparentMode = tMode;
 		blurAmount = backgroundWallpaper.banner?.navbar?.blur ?? 20;
 	}
 

@@ -77,13 +77,16 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 		@apply relative;
 	}
 
+	/* 显隐状态统一收敛到 .dropdown-menu（与 main.css 一致） */
 	.dropdown-menu {
-		@apply absolute top-full left-0 pt-2 pointer-events-none z-50;
+		@apply absolute top-full left-0 pt-2 z-50
+		invisible opacity-0 translate-y-[-8px] pointer-events-none
+		transition-[opacity,visibility,translate] duration-200 ease-out;
 	}
 
 	.dropdown-container:hover .dropdown-menu,
 	.dropdown-container:focus-within .dropdown-menu {
-		@apply pointer-events-auto;
+		@apply visible opacity-100 translate-y-0 pointer-events-auto;
 	}
 
 	.dropdown-container:hover .dropdown-arrow,
@@ -91,8 +94,8 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 		@apply rotate-180;
 	}
 
-	/* 移动端隐藏下拉菜单 */
-	@media (max-width: 768px) {
+	/* 桌面菜单容器在 lg(1024px) 隐藏，下拉容器同步用 1023px 避免区间重叠 */
+	@media (max-width: 1023px) {
 		.dropdown-container {
 			@apply hidden;
 		}
