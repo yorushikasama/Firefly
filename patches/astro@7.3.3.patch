@@ -1,0 +1,115 @@
+diff --git a/dist/content/config-prewarm.js b/dist/content/config-prewarm.js
+index ce5c7788b615362416b280f54fb745f4b0624cdd..147d4aa07b96d95767ca2e451eb9ec7091c3d230 100644
+--- a/dist/content/config-prewarm.js
++++ b/dist/content/config-prewarm.js
+@@ -1,5 +1,6 @@
+ import { getContentPaths, reloadContentConfigObserver } from "./utils.js";
+ let inFlight;
++let inFlightEnvironment;
+ function getContentConfigLoadPromise() {
+   return inFlight;
+ }
+@@ -9,7 +10,7 @@ function kickOffContentConfigLoad({
+   logger,
+   environment
+ }) {
+-  if (inFlight) {
++  if (inFlight && inFlightEnvironment === environment) {
+     return inFlight;
+   }
+   const contentPaths = getContentPaths(
+@@ -20,14 +21,27 @@ function kickOffContentConfigLoad({
+   if (!contentPaths.config.exists) {
+     return Promise.resolve();
+   }
+-  inFlight = reloadContentConfigObserver({
++  // Patch: a Vite dev-server restart creates a new environment. An in-flight
++  // load from a previous environment belongs to a module runner that is about
++  // to be closed, so it must not be reused (it would hang for the transport
++  // timeout and then fail with "module runner has been closed"). Start a fresh
++  // load bound to the current environment instead.
++  inFlightEnvironment = environment;
++  const load = reloadContentConfigObserver({
+     fs,
+     settings,
+     environment,
+     logger
+-  }).finally(() => {
+-    inFlight = void 0;
+   });
++  const tracked = load.finally(() => {
++    // Only clear the slot if this load is still the current one, so that a
++    // stale load settling after a restart does not drop the fresh load.
++    if (inFlight === tracked) {
++      inFlight = void 0;
++      inFlightEnvironment = void 0;
++    }
++  });
++  inFlight = tracked;
+   return inFlight;
+ }
+ export {
+diff --git a/dist/content/utils.js b/dist/content/utils.js
+index 6e5b6e6f95c64bbb800bd16221e5f549d2d3f14b..c166b8184a991829a5950f76d5a1f490f6cf96cb 100644
+--- a/dist/content/utils.js
++++ b/dist/content/utils.js
+@@ -472,10 +472,12 @@ The following collections have been auto-generated: ${orphanedCollections.map((n
+   }
+   return { ...config, collections };
+ }
++let contentConfigReloadId = 0;
+ async function reloadContentConfigObserver({
+   observer = globalContentConfigObserver,
+   ...loadContentConfigOpts
+ }) {
++  const reloadId = ++contentConfigReloadId;
+   observer.set({ status: "loading" });
+   try {
+     let config = await loadContentConfig(loadContentConfigOpts);
+@@ -483,12 +485,22 @@ async function reloadContentConfigObserver({
+       config,
+       ...loadContentConfigOpts
+     });
++    if (reloadId !== contentConfigReloadId) {
++      return;
++    }
+     if (config) {
+       observer.set({ status: "loaded", config });
+     } else {
+       observer.set({ status: "does-not-exist" });
+     }
+   } catch (e) {
++    // Patch: only the latest reload may write an error. After a Vite dev-server
++    // restart, stale loads from a previous environment resolve against a closed
++    // module runner; their failure must not clobber the current environment's
++    // "loaded" state (which would skip content sync and empty the stores).
++    if (reloadId !== contentConfigReloadId) {
++      return;
++    }
+     observer.set({
+       status: "error",
+       error: e instanceof Error ? e : new AstroError(AstroErrorData.UnknownContentCollectionError)
+diff --git a/dist/vite-plugin-astro-server/plugin.js b/dist/vite-plugin-astro-server/plugin.js
+index 8a3ca83d53db780245ab589a30151d9e02241aa1..011a24faa1d0d79ea68a2e9700827121ac7dac3c 100644
+--- a/dist/vite-plugin-astro-server/plugin.js
++++ b/dist/vite-plugin-astro-server/plugin.js
+@@ -60,10 +60,17 @@ function createVitePluginAstroServer({
+         [contentConfigLoad, ssrHandlerPromise, prerenderHandlerPromise].filter(Boolean)
+       ).then(() => void 0);
+       ssrHandlerPromise?.catch((error) => {
+-        logger.error(null, `Failed to create the dev server app: ${error?.message ?? error}`);
++        // Patch: ignore failures caused by the module runner being closed
++        // during a dev-server restart (the environment is being replaced and
++        // the new server creates its own handler).
++        if (runnableSsrEnvironment && !runnableSsrEnvironment.runner.isClosed()) {
++          logger.error(null, `Failed to create the dev server app: ${error?.message ?? error}`);
++        }
+       });
+       prerenderHandlerPromise?.catch((error) => {
+-        logger.error(null, `Failed to create the prerender server app: ${error?.message ?? error}`);
++        if (runnablePrerenderEnvironment && !runnablePrerenderEnvironment.runner.isClosed()) {
++          logger.error(null, `Failed to create the prerender server app: ${error?.message ?? error}`);
++        }
+       });
+       const localStorage = new AsyncLocalStorage();
+       async function handleUnhandledRejection(rejection) {
