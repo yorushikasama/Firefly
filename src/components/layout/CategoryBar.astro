@@ -22,8 +22,10 @@ const archiveUrl = url("/archive/");
 const pathname = Astro.url.pathname.replace(/\/$/, "");
 const homePath = homeUrl.replace(/\/$/, "");
 const archivePath = archiveUrl.replace(/\/$/, "");
+const categoriesUrl = url("/categories/");
+const categoriesPath = categoriesUrl.replace(/\/$/, "");
 const isHome = pathname === homePath || pathname === "" || pathname === "/";
-const isCategories = pathname === "/categories";
+const isCategories = pathname === categoriesPath;
 const isArchive = pathname === archivePath;
 const postCategory = (currentPostCategory || "").trim();
 
@@ -46,6 +48,7 @@ function initialActive(categoryName: string): {
   id="category-bar"
   data-home-path={homeUrl}
   data-archive-path={archiveUrl}
+  data-categories-path={categoriesUrl}
   data-current-post-category={currentPostCategory || ""}
 >
   <div class="category-bar-inner flex gap-2">
@@ -96,7 +99,7 @@ function initialActive(categoryName: string): {
     </div>
     <div class="category-divider shrink-0 more-divider" aria-hidden="true"></div>
     <a
-      href={url("/categories/")}
+      href={categoriesUrl}
       class="category-pill focus-ring-inset text-sm px-3 py-1.5 shrink-0
              transition-colors duration-150 ease-out flex items-center justify-center gap-1"
       data-category-name="__categories__"
@@ -174,9 +177,10 @@ function initialActive(categoryName: string): {
     const pathname = currentUrl.pathname.replace(/\/$/, "");
     const homePath = (bar.getAttribute("data-home-path") || "/").replace(/\/$/, "");
     const archivePath = (bar.getAttribute("data-archive-path") || "/archive").replace(/\/$/, "");
+    const categoriesPath = (bar.getAttribute("data-categories-path") || "/categories").replace(/\/$/, "");
     const isHome = pathname === homePath || pathname === "" || pathname === "/";
     const isArchive = pathname === archivePath;
-    const isCategories = pathname === "/categories";
+    const isCategories = pathname === categoriesPath;
 
     return {
       isHome,
