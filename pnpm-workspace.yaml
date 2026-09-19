@@ -3,3 +3,6 @@ packages:
 allowBuilds:
   esbuild: true
   workerd: true
+patchedDependencies:
+  rolldown@1.2.7: patches/rolldown@1.2.7.patch
+  vite@8.2.2: patches/vite@8.2.2.patch

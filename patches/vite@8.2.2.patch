@@ -1,0 +1,14 @@
+diff --git a/dist/node/chunks/node.js b/dist/node/chunks/node.js
+index 87cfa480c3d4132f9dd1b74c6c1bbe2b90385d3f..c2a17f375c9f9c2fa89453c760d80f326b655ded 100644
+--- a/dist/node/chunks/node.js
++++ b/dist/node/chunks/node.js
+@@ -26420,6 +26420,9 @@ async function _createServer(inlineConfig = {}, options) {
+ 			previousInstance: options.previousEnvironments?.[environment.name]
+ 		});
+ 	}));
++	// Patch: release retired environments so the previous module graphs and plugin
++	// caches can be garbage collected on dev server restart (fixes per-restart leak).
++	options.previousEnvironments = void 0;
+ 	let moduleGraph = new ModuleGraph({
+ 		client: () => environments.client.moduleGraph,
+ 		ssr: () => environments.ssr.moduleGraph
