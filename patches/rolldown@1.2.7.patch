@@ -1,15 +1,27 @@
 diff --git a/dist/shared/normalize-string-or-regex-Dm69lpQ-.mjs b/dist/shared/normalize-string-or-regex-Dm69lpQ-.mjs
-index 13a990dc16c254f50b28967e9137a34e1e6912e4..acfb4c1dda7886b8bc38f1eec1b4fbf7453b0f85 100644
+index 13a990dc16c254f50b28967e9137a34e1e6912e4..c07a8704c6616df4fed1dea43e75e348805e8981 100644
 --- a/dist/shared/normalize-string-or-regex-Dm69lpQ-.mjs
 +++ b/dist/shared/normalize-string-or-regex-Dm69lpQ-.mjs
-@@ -12,8 +12,23 @@ var BuiltinPlugin = class {
+@@ -12,8 +12,35 @@ var BuiltinPlugin = class {
  		this._options = _options;
  	}
  };
++// Patch: dev-server restarts leak the whole previous environment because these
++// two vite-resolve callbacks close over getDepsOptimizer() -> getEnv(), and the
++// native BindingCallableBuiltinPlugin roots them for its own lifetime. Holding
++// them weakly lets the retired environment be collected. Scoped to an explicit
++// allowlist: vite sets both to undefined unless depsOptimizerEnabled, which
++// requires !isBuild, so this is a no-op during production builds and never
++// touches any other builtin plugin's callbacks.
++const weaklyHeldCallbacks = {
++	"builtin:vite-resolve": ["finalizeBareSpecifier", "finalizeOtherSpecifiers"]
++};
 +function weakCallback(callback, pluginName, key) {
 +	const reference = new WeakRef(callback);
 +	return function(...args) {
 +		const current = reference.deref();
++		// Unreachable while the plugin object is alive: it keeps _options, and
++		// therefore the original callbacks, strongly referenced.
 +		if (!current) throw new Error(`Released callback owner: ${pluginName}.${key}`);
 +		return current.apply(this, args);
 +	};
@@ -17,12 +29,12 @@ index 13a990dc16c254f50b28967e9137a34e1e6912e4..acfb4c1dda7886b8bc38f1eec1b4fbf7
  function makeBuiltinPluginCallable(plugin) {
 -	let callablePlugin = new import_binding.BindingCallableBuiltinPlugin(bindingifyBuiltInPlugin(plugin));
 +	const binding = bindingifyBuiltInPlugin(plugin);
-+	// Original options remain owned by the JS plugin, not by native callback roots.
-+	if (binding.options) binding.options = Object.fromEntries(
-+		Object.entries(binding.options).map(([key, value]) =>
-+			[key, typeof value === "function" ? weakCallback(value, plugin.name, key) : value]
-+		)
-+	);
++	const weakKeys = weaklyHeldCallbacks[plugin.name];
++	if (weakKeys && binding.options) {
++		const options = { ...binding.options };
++		for (const key of weakKeys) if (typeof options[key] === "function") options[key] = weakCallback(options[key], plugin.name, key);
++		binding.options = options;
++	}
 +	let callablePlugin = new import_binding.BindingCallableBuiltinPlugin(binding);
  	const wrappedPlugin = plugin;
  	for (const key in callablePlugin) {

@@ -50,7 +50,7 @@ index ce5c7788b615362416b280f54fb745f4b0624cdd..147d4aa07b96d95767ca2e451eb9ec70
  }
  export {
 diff --git a/dist/content/utils.js b/dist/content/utils.js
-index 6e5b6e6f95c64bbb800bd16221e5f549d2d3f14b..c166b8184a991829a5950f76d5a1f490f6cf96cb 100644
+index 6e5b6e6f95c64bbb800bd16221e5f549d2d3f14b..1d57fde299db26094e2d78e7f10dd5b1973a81b9 100644
 --- a/dist/content/utils.js
 +++ b/dist/content/utils.js
 @@ -472,10 +472,12 @@ The following collections have been auto-generated: ${orphanedCollections.map((n
@@ -66,11 +66,15 @@ index 6e5b6e6f95c64bbb800bd16221e5f549d2d3f14b..c166b8184a991829a5950f76d5a1f490
    observer.set({ status: "loading" });
    try {
      let config = await loadContentConfig(loadContentConfigOpts);
-@@ -483,12 +485,22 @@ async function reloadContentConfigObserver({
+@@ -483,12 +485,32 @@ async function reloadContentConfigObserver({
        config,
        ...loadContentConfigOpts
      });
 +    if (reloadId !== contentConfigReloadId) {
++      loadContentConfigOpts.logger?.debug(
++        "content",
++        `Discarded a stale content config reload (#${reloadId}, current #${contentConfigReloadId}).`
++      );
 +      return;
 +    }
      if (config) {
@@ -83,32 +87,46 @@ index 6e5b6e6f95c64bbb800bd16221e5f549d2d3f14b..c166b8184a991829a5950f76d5a1f490
 +    // restart, stale loads from a previous environment resolve against a closed
 +    // module runner; their failure must not clobber the current environment's
 +    // "loaded" state (which would skip content sync and empty the stores).
++    // The error is still surfaced at debug level so a real config failure that
++    // happens to race with a restart is never dropped without a trace.
 +    if (reloadId !== contentConfigReloadId) {
++      loadContentConfigOpts.logger?.debug(
++        "content",
++        `Discarded a stale content config reload (#${reloadId}, current #${contentConfigReloadId}): ${e instanceof Error ? e.message : e}`
++      );
 +      return;
 +    }
      observer.set({
        status: "error",
        error: e instanceof Error ? e : new AstroError(AstroErrorData.UnknownContentCollectionError)
 diff --git a/dist/vite-plugin-astro-server/plugin.js b/dist/vite-plugin-astro-server/plugin.js
-index 8a3ca83d53db780245ab589a30151d9e02241aa1..011a24faa1d0d79ea68a2e9700827121ac7dac3c 100644
+index 8a3ca83d53db780245ab589a30151d9e02241aa1..470c8d3576b7e7c4a35c6566280bf0459e229f58 100644
 --- a/dist/vite-plugin-astro-server/plugin.js
 +++ b/dist/vite-plugin-astro-server/plugin.js
-@@ -60,10 +60,17 @@ function createVitePluginAstroServer({
+@@ -60,10 +60,25 @@ function createVitePluginAstroServer({
          [contentConfigLoad, ssrHandlerPromise, prerenderHandlerPromise].filter(Boolean)
        ).then(() => void 0);
        ssrHandlerPromise?.catch((error) => {
 -        logger.error(null, `Failed to create the dev server app: ${error?.message ?? error}`);
-+        // Patch: ignore failures caused by the module runner being closed
-+        // during a dev-server restart (the environment is being replaced and
-+        // the new server creates its own handler).
++        // Patch: a dev-server restart closes this environment's module runner
++        // while the handler is still being created, so the resulting rejection
++        // is expected noise (the new server creates its own handler). Demote it
++        // to debug instead of dropping it, so a real failure that happens to
++        // land during shutdown is still traceable via --verbose.
++        const message = `Failed to create the dev server app: ${error?.message ?? error}`;
 +        if (runnableSsrEnvironment && !runnableSsrEnvironment.runner.isClosed()) {
-+          logger.error(null, `Failed to create the dev server app: ${error?.message ?? error}`);
++          logger.error(null, message);
++        } else {
++          logger.debug("server", `${message} (module runner closed, likely a dev-server restart)`);
 +        }
        });
        prerenderHandlerPromise?.catch((error) => {
 -        logger.error(null, `Failed to create the prerender server app: ${error?.message ?? error}`);
++        const message = `Failed to create the prerender server app: ${error?.message ?? error}`;
 +        if (runnablePrerenderEnvironment && !runnablePrerenderEnvironment.runner.isClosed()) {
-+          logger.error(null, `Failed to create the prerender server app: ${error?.message ?? error}`);
++          logger.error(null, message);
++        } else {
++          logger.debug("server", `${message} (module runner closed, likely a dev-server restart)`);
 +        }
        });
        const localStorage = new AsyncLocalStorage();
