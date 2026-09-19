@@ -20,3 +20,8 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # astro is pinned by a pnpm patch (see docs/dependency-patches.md), and it
+      # also decides the transitive vite/rolldown versions those patches target.
+      # Any bump invalidates all three patch keys and makes `pnpm install` fail,
+      # so astro is upgraded manually together with re-cutting the patches.
+      - dependency-name: "astro"
