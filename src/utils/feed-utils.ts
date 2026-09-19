@@ -8,6 +8,7 @@ import { i18n } from "@i18n/translation";
 import { url } from "@utils/url-utils";
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import sanitizeHtml from "sanitize-html";
+import { profileGithubUrl } from "@/config";
 
 /**
  * 归一化后的 feed 条目，供 RSS 与 Atom 共用。
@@ -199,7 +200,7 @@ export function buildAtomFeed(opts: {
   <author><name>${escapeXml(authorName)}</name></author>
   <link rel="alternate" href="${escapeXml(siteRoot)}"/>
   <link rel="self" href="${escapeXml(selfLink)}"/>
-  <generator uri="https://github.com/CuteLeaf/Firefly">${escapeXml(generator)}</generator>
+  <generator uri="${escapeXml(profileGithubUrl)}">${escapeXml(generator)}</generator>
 ${entryXml}
 </feed>
 `;

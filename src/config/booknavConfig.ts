@@ -1,4 +1,5 @@
 import type { BooknavGroup, BooknavPageConfig } from "../types/booknavConfig";
+import { profileGithubUrl } from "./profileConfig";
 
 // 书签导航页面配置
 export const booknavPageConfig: BooknavPageConfig = {
@@ -76,7 +77,7 @@ export const booknavConfig: BooknavGroup[] = [
 		items: [
 			{
 				title: "Firefly",
-				url: "https://github.com/CuteLeaf/Firefly",
+				url: profileGithubUrl,
 				desc: "清晰美观的 Astro 个人博客主题模板",
 				icon: "/favicon/firefly-32.png",
 				weight: 10,

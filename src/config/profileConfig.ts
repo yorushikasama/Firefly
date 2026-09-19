@@ -9,10 +9,10 @@ export const profileConfig: ProfileConfig = {
 	avatar: "assets/images/avatar.avif",
 
 	// 名字
-	name: "XiaYe",
+	name: "Yuzuriha Inori",
 
 	// 个人签名
-	bio: "Hello, I'm XiaYe.",
+	bio: "Hello, I'm Yuzuriha Inori.",
 
 	// 链接配置
 	// 已经预装的图标集：fa7-brands，fa7-regular，fa7-solid，material-symbols，simple-icons
@@ -24,7 +24,7 @@ export const profileConfig: ProfileConfig = {
 		{
 			name: "GitHub",
 			icon: "fa7-brands:github",
-			url: "https://github.com/CuteLeaf",
+			url: "https://github.com/yorushikasama",
 			showName: false,
 		},
 		{
@@ -47,3 +47,10 @@ export const profileConfig: ProfileConfig = {
 		},
 	],
 };
+
+/**
+ * 全局 GitHub 地址：从 profileConfig.links 中的 GitHub 项读取，
+ * 导航栏、页脚、RSS/Feed、横幅、书签等所有出现 GitHub 链接的地方统一引用这里。
+ */
+export const profileGithubUrl: string =
+	profileConfig.links.find((link) => link.name === "GitHub")?.url ?? "";

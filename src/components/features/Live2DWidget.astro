@@ -1,4 +1,5 @@
 ---
+import { profileGithubUrl } from "@/config";
 import { url } from "@/utils/url-utils";
 
 interface MenuItem {
@@ -100,6 +101,7 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 	data-menus={JSON.stringify(serializeMenus(config.menus))}
 	data-tips={JSON.stringify(config.tips || {})}
 	data-responsive={JSON.stringify(config.responsive || {})}
+	data-github-url={profileGithubUrl}
 >
 </div>
 
@@ -133,7 +135,12 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 		home: () => (window.location.href = "/"),
 		scrollToTop: () => window.scrollTo({ top: 0, behavior: "smooth" }),
 		sleep: (widget) => widget.sleep(),
-		github: () => window.open("https://github.com/CuteLeaf/Firefly", "_blank"),
+		github: () => {
+			const container = document.getElementById("l2d-widget-container");
+			const githubUrl =
+				container?.dataset.githubUrl || "https://github.com";
+			window.open(githubUrl, "_blank");
+		},
 		switchModel: (widget) => {
 			const container = document.getElementById("l2d-widget-container");
 			const models = JSON.parse(container?.dataset.models || "[]");
