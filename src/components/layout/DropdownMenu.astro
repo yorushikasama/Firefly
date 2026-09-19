@@ -85,12 +85,12 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 	}
 
 	.dropdown-container:hover .dropdown-menu,
-	.dropdown-container:focus-within .dropdown-menu {
+	.dropdown-container[data-open] .dropdown-menu {
 		@apply visible opacity-100 translate-y-0 pointer-events-auto;
 	}
 
 	.dropdown-container:hover .dropdown-arrow,
-	.dropdown-container:focus-within .dropdown-arrow {
+	.dropdown-container[data-open] .dropdown-arrow {
 		@apply rotate-180;
 	}
 
@@ -147,6 +147,14 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 					}
 				});
 			});
+
+			// 焦点离开整个下拉容器时收起（顶替原先 :focus-within 的行为）
+			dropdown.addEventListener('focusout', function(e: Event) {
+				const next = (e as FocusEvent).relatedTarget as Node | null;
+				if (!next || !dropdown.contains(next)) {
+					closeDropdown(dropdown, trigger, menu);
+				}
+			});
 		});
 		
 		// 点击外部关闭下拉菜单
@@ -163,20 +171,23 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 		});
 	});
 	
-	function toggleDropdown(_dropdown: Element, trigger: Element, menu: Element) {
+	function toggleDropdown(dropdown: Element, trigger: Element, menu: Element) {
 		const isOpen = trigger.getAttribute('aria-expanded') === 'true';
 		if (isOpen) {
-			closeDropdown(_dropdown, trigger, menu);
+			closeDropdown(dropdown, trigger, menu);
 		} else {
-			openDropdown(_dropdown, trigger, menu);
+			openDropdown(dropdown, trigger, menu);
 		}
 	}
 
-	function openDropdown(_dropdown: Element, trigger: Element, _menu: Element) {
+	// data-open 同时驱动 CSS 显隐和 aria-expanded，避免读屏状态与实际渲染不一致
+	function openDropdown(dropdown: Element, trigger: Element, _menu: Element) {
+		dropdown.setAttribute('data-open', '');
 		trigger.setAttribute('aria-expanded', 'true');
 	}
 
-	function closeDropdown(_dropdown: Element, trigger: Element, _menu: Element) {
+	function closeDropdown(dropdown: Element, trigger: Element, _menu: Element) {
+		dropdown.removeAttribute('data-open');
 		trigger.setAttribute('aria-expanded', 'false');
 	}
 </script>
