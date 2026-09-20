@@ -131,3 +131,94 @@ index 8a3ca83d53db780245ab589a30151d9e02241aa1..470c8d3576b7e7c4a35c6566280bf045
        });
        const localStorage = new AsyncLocalStorage();
        async function handleUnhandledRejection(rejection) {
+diff --git a/dist/cli/dev/index.js b/dist/cli/dev/index.js
+index f6a3551..2d8bf67 100644
+--- a/dist/cli/dev/index.js
++++ b/dist/cli/dev/index.js
+@@ -1,6 +1,7 @@
+ import colors from "piccolore";
+ import devServer from "../../core/dev/index.js";
+-import { pathToFileURL } from "node:url";
++import { fileURLToPath, pathToFileURL } from "node:url";
++import { rmSync } from "node:fs";
+ import {
+   checkExistingServer,
+   killDevServer,
+@@ -142,18 +143,31 @@ Run \`astro dev --help\` to see available commands.`
+   }
+   const existingServer = await checkExistingServer(root);
+   if (existingServer) {
+-    if (flags.force) {
+-      await killDevServer(root, existingServer);
+-    } else {
+-      const message = [
+-        "Another astro dev server is already running.",
+-        "",
+-        `  URL:  ${existingServer.url}`,
+-        `  PID:  ${existingServer.pid}`,
+-        "",
+-        `Run \`astro dev stop\` to stop it, or use \`astro dev --force\` to replace it.`
+-      ].join("\n");
+-      throw new Error(message);
++    // Patch: take over the existing server instead of refusing to start. Two
++    // concurrent dev servers share one .astro cache directory and corrupt each
++    // other's content maps, but nothing stopped them: Vite silently bumps the
++    // port (strictPort defaults to false), so a second instance quietly landed
++    // on 4322 while the first kept running. Reclaim the port by default.
++    //
++    // This deliberately reuses killDevServer rather than setting flags.force:
++    // in this CLI --force means "clear the content layer cache, forcing a full
++    // rebuild", so piggybacking on it would rebuild all content (~95s) on every
++    // start. Only the takeover is wanted here.
++    await killDevServer(root, existingServer);
++    // Patch: the killed instance may have been mid-write in the content layer
++    // when it died. On Windows SIGTERM is TerminateProcess, so there is no
++    // graceful flush, and the surviving files can leave the new instance with an
++    // empty module map -- /about/ and other spec pages then 500 with "Entry
++    // spec -> about was not found". Drop the derived content layer so the new
++    // server rebuilds it from src/content instead of trusting a torn cache.
++    for (const relativePath of [
++      ".astro/collections",
++      ".astro/content-assets.mjs",
++      ".astro/content-modules.mjs",
++      ".astro/data-store.json",
++      ".astro/content.d.ts"
++    ]) {
++      rmSync(fileURLToPath(new URL(relativePath, root)), { recursive: true, force: true });
+     }
+   }
+   const inlineConfig = flagsToAstroInlineConfig(flags);
+@@ -173,6 +187,16 @@ Run \`astro dev --help\` to see available commands.`
+       removeLockFile(root);
+       await originalStop();
+     };
++    // Patch: a foreground `astro dev` had no signal handler, so Ctrl+C killed the
++    // process through Node's default SIGINT behaviour and left the lock file on
++    // disk pointing at a dead pid. Every subsequent run then refused to start
++    // until the file was removed manually. Clear it on the way out.
++    for (const signal of ["SIGINT", "SIGTERM"]) {
++      process.on(signal, () => {
++        removeLockFile(root);
++        process.exit(0);
++      });
++    }
+   }
+   return server;
+ }
+diff --git a/dist/core/dev/lockfile.js b/dist/core/dev/lockfile.js
+index bb43a10..c92943d 100644
+--- a/dist/core/dev/lockfile.js
++++ b/dist/core/dev/lockfile.js
+@@ -60,7 +60,11 @@ async function isLockFileProcessAlive(data, find = findProcess) {
+     );
+     return processInfo?.cmd === void 0 || isAstroCommand(processInfo.cmd);
+   } catch {
+-    return true;
++    // Patch: a failed process lookup must not be read as "still alive". The old
++    // fail-safe value made a stale lock file permanent: once a dev server was
++    // gone, `astro dev` reported it as running forever and refused to start
++    // until the lock file was deleted by hand.
++    return false;
+   }
+ }
+ function readLockFile(root, command = "dev") {
