@@ -1,6 +1,9 @@
 # build output
 dist/
 
+# 本地素材暂存区：尚未纳入站点内容，故不提交
+public/assets/images/pic/
+
 # generated vndb covers
 public/vndb-covers/
 
