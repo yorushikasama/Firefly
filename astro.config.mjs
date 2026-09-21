@@ -354,7 +354,23 @@ export default defineConfig({
 		plugins: [tailwindcss()],
 		server: {
 			watch: {
-				ignored: ["**/package/**", "**/Firefly-docs/**"],
+				ignored: [
+					"**/package/**",
+					"**/Firefly-docs/**",
+					// tsconfig.json 常被误报为变更：本环境下 chokidar 在任意文件发生改动时，
+					// 会把 tsconfig.json 也作为 change 事件上报（实测该文件 mtime 未变、git 无改动
+					// 仍被上报）。vite 见此即清空 module graph 并强制 full-reload，期间 module
+					// runner 关闭，正在处理的内容层重建被中断，导致 spec 集合索引残缺——
+					// 表现为 /about/ 报 "Entry spec -> about was not found"（500）而其他页面正常。
+					// 忽略它可切断这条链路；代价是改动 tsconfig 后需手动重启 dev server。
+					"**/tsconfig.json",
+					// svelte.config.js 同样会被误报：它的 mtime 未变、git 无改动，仍被上报为
+					// 变更，经 vite-plugin-svelte 触发 server restarted，后果与上面 tsconfig 相同。
+					"**/svelte.config.js",
+					// 构建产物与内容层缓存，不应参与开发期 watch
+					"**/dist/**",
+					"**/.astro/**",
+				],
 			},
 		},
 		resolve: {
