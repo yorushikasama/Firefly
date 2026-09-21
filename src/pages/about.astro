@@ -10,7 +10,14 @@ import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import { getAuthorAvatarUrl } from "@/utils/schema-image";
 import { buildProfilePage } from "@/utils/schema-utils";
 
-const aboutPost = await getEntry("spec", "about");
+// 内容层在开发期可能瞬时未就绪：配置变更会清空 store 后异步重建，重建完成前
+// 读到的集合是空的。这里等待并重试一次，避免把瞬时状态当成「内容不存在」而整页 500。
+let aboutPost = await getEntry("spec", "about");
+
+if (!aboutPost) {
+	await new Promise((resolve) => setTimeout(resolve, 800));
+	aboutPost = await getEntry("spec", "about");
+}
 
 if (!aboutPost) {
 	throw new Error("About page content not found");

@@ -222,3 +222,108 @@ index bb43a10..c92943d 100644
    }
  }
  function readLockFile(root, command = "dev") {
+diff --git a/dist/content/mutable-data-store.js b/dist/content/mutable-data-store.js
+--- a/dist/content/mutable-data-store.js
++++ b/dist/content/mutable-data-store.js
+@@ -28,6 +28,8 @@
+   #modulesDirty = false;
+   #assetImports = /* @__PURE__ */ new Set();
+   #moduleImports = /* @__PURE__ */ new Map();
++  // Patch: clearAll() 之后到重建完成之间为 true，期间不把空 Map 落盘
++  #writesSuspended = false;
+   #writeInProgress = false;
+   #writeQueued = false;
+   #fileWrittenListeners = /* @__PURE__ */ new Set();
+@@ -78,11 +80,25 @@
+     this.#writeModulesImportsDebounced();
+   }
+   clearAll() {
++    // Patch: clearAll() 只发生在内容层重建之前（config digest 变化时）。
++    // 此时集合被清空是临时状态，重建完成后会重新填充。若在此刻把空的
++    // content-modules.mjs / content-assets.mjs 写到磁盘，一旦重建被请求
++    // 打断或进程退出，空 Map 就被固化，之后所有 deferredRender 内容
++    // （如 spec 集合）都会报 "Entry ... was not found"。因此这里先挂起
++    // 落盘，等重建结束由 resumeWrites() 恢复并写入真实数据。
++    this.#writesSuspended = true;
+     this._collections.clear();
+     this.#saveToDiskDebounced();
+     this.#writeAssetsImportsDebounced();
+     this.#writeModulesImportsDebounced();
+   }
++  /** Patch: 结束 clearAll() 引起的落盘挂起状态，并立即写出当前真实数据。 */
++  resumeWrites() {
++    if (!this.#writesSuspended) return;
++    this.#writesSuspended = false;
++    this.#writeAssetsImportsDebounced();
++    this.#writeModulesImportsDebounced();
++  }
+   addAssetImport(assetImport, filePath) {
+     const id = imageSrcToImportId(assetImport, filePath);
+     if (id) {
+@@ -146,6 +162,8 @@
+     this.#assetsFile = filePath;
+     this.#rebuildAssetImports();
+     if (this.#assetImports.size === 0) {
++      // Patch: 重建期间的空集合是临时状态，不落盘，保留磁盘上的旧值
++      if (this.#writesSuspended) return;
+       try {
+         await this.#writeFileAtomic(filePath, "export default new Map();");
+       } catch (err) {
+@@ -181,6 +199,8 @@
+     this.#modulesFile = filePath;
+     this.#rebuildModuleImports();
+     if (this.#moduleImports.size === 0) {
++      // Patch: 同 writeAssetImports——重建期间不把空 Map 固化到磁盘
++      if (this.#writesSuspended) return;
+       try {
+         await this.#writeFileAtomic(filePath, "export default new Map();");
+       } catch (err) {
+@@ -282,14 +302,18 @@
+     }, SAVE_DEBOUNCE_MS);
+   }
+   #writing = /* @__PURE__ */ new Set();
+-  #pending = /* @__PURE__ */ new Set();
++  // Patch: 由 Set 改为 Map<fileKey, data>，重试时使用最新内容
++  #pending = /* @__PURE__ */ new Map();
+   async #writeFileAtomic(filePath, data, depth = 0) {
+     if (depth > MAX_DEPTH) {
+       return;
+     }
+     const fileKey = filePath.toString();
+     if (this.#writing.has(fileKey)) {
+-      this.#pending.add(fileKey);
++      // Patch: 把本次要写的内容一并暂存。原实现只记下文件路径，递归重试时
++      // 沿用闭包里旧的 data，导致并发写（如 clearAll 的空 Map 与随后重建
++      // 的完整 Map）时旧值覆盖新值，磁盘被固化成过期内容。
++      this.#pending.set(fileKey, data);
+       return;
+     }
+     this.#writing.add(fileKey);
+@@ -304,9 +328,11 @@
+       this.#notifyFileWritten(filePath);
+     } finally {
+       this.#writing.delete(fileKey);
+-      if (this.#pending.has(fileKey)) {
++      const pendingData = this.#pending.get(fileKey);
++      if (pendingData !== void 0) {
++        // Patch: 用最新排队的 data 重试，而不是闭包里过期的 data
+         this.#pending.delete(fileKey);
+-        await this.#writeFileAtomic(filePath, data, depth + 1);
++        await this.#writeFileAtomic(filePath, pendingData, depth + 1);
+       }
+     }
+   }
+diff --git a/dist/content/content-layer.js b/dist/content/content-layer.js
+--- a/dist/content/content-layer.js
++++ b/dist/content/content-layer.js
+@@ -266,6 +266,10 @@
+       })
+     );
+     this.#validateReferences(contentConfig.config.collections, logger);
++    // Patch: 所有 loader 已执行完毕，集合已重新填充。解除 clearAll() 造成的
++    // 落盘挂起，使下面的 writeAssetImports / writeModuleImports 写入真实数据
++    // 而不是空 Map。必须放在此处——早于 loader 完成则仍会写空。
++    this.#store.resumeWrites();
+     await fs.mkdir(this.#settings.config.cacheDir, { recursive: true });
+     await fs.mkdir(this.#settings.dotAstroDir, { recursive: true });
+     const assetImportsFile = new URL(ASSET_IMPORTS_FILE, this.#settings.dotAstroDir);
