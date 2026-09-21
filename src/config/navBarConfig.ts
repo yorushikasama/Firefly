@@ -15,34 +15,10 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 	links.push(LinkPresets.Series);
 	links.push(LinkPresets.Archive);
 
-	//我的及其子菜单
-	links.push({
-		name: "我的",
-		url: "#",
-		icon: "material-symbols:person",
-		children: [
-			// 项目
-			LinkPresets.Projects,
-
-			// 相册
-			LinkPresets.Gallery,
-
-			// 书签导航
-			LinkPresets.Booknav,
-
-			// 哔哩哔哩追番
-			LinkPresets.Bilibili,
-
-			// 番组计划
-			LinkPresets.Bangumi,
-
-			// VNDB
-			LinkPresets.VNDB,
-
-			// MyAnimeList
-			LinkPresets.MAL,
-		],
-	});
+	// 项目 / 相册 / 书签导航：直接作为顶级入口
+	links.push(LinkPresets.Projects);
+	links.push(LinkPresets.Gallery);
+	links.push(LinkPresets.Booknav);
 
 	// 关于及其子菜单
 	links.push({
