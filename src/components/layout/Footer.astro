@@ -1,7 +1,7 @@
 ---
 import fs from "node:fs";
 import path from "node:path";
-import { profileConfig, profileGithubUrl } from "@/config";
+import { profileConfig } from "@/config";
 import { url } from "@/utils/url-utils";
 
 const currentYear = new Date().getFullYear();
@@ -81,7 +81,7 @@ try {
 				<a
 					class="transition link text-(--primary) font-medium"
 					target="_blank"
-					href={profileGithubUrl}>Firefly</a
+					href="https://github.com/CuteLeaf/Firefly">Firefly</a
 				>
 			</div>
 		</div>
