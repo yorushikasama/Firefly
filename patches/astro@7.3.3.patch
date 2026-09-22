@@ -402,6 +402,42 @@ index bb43a1049418b75d9358359099a20855eae6b4da..c92943dfc41f7b786af951f10b1c2329
    }
  }
  function readLockFile(root, command = "dev") {
+diff --git a/dist/core/dev/restart.js b/dist/core/dev/restart.js
+index 613392ce02e5cb3c935e92e7a508ce53c532aa29..b48a1c892b7fe4511b4c960c762948d9cf43ae72 100644
+--- a/dist/core/dev/restart.js
++++ b/dist/core/dev/restart.js
+@@ -1,3 +1,4 @@
++import { existsSync } from "node:fs";
+ import { fileURLToPath } from "node:url";
+ import * as vite from "vite";
+ import { globalContentLayer } from "../../content/instance.js";
+@@ -172,7 +173,25 @@ async function createContainerWithAutomaticRestart({
+     if (unlinkHandler) watcher.off("unlink", unlinkHandler);
+     if (addHandler) watcher.off("add", addHandler);
+     changeHandler = handleChangeRestart("Configuration file updated.");
+-    unlinkHandler = handleChangeRestart("Configuration file removed.");
++    // Patch: 这台机器上 chokidar 会对 astro.config.mjs 发出「幻影 unlink」事件
++    // ——文件其实一直在（NTFS USN 日志证实：报出 unlink 的那些时刻磁盘上对该
++    // 文件没有任何删除/写入记录，mtime 也不变）。原实现一见 unlink 就整站重启，
++    // 于是每隔十几分钟无故全量重启一次，日积月累叠加 vite/rolldown 的重启内存
++    // 泄漏，最终把 dev 进程拖到 OOM 裸退出（[ELIFECYCLE] exit 1）。这里在真正
++    // 重启前确认文件是否真的不在了：若 changedFile 仍存在于磁盘，判定为幻影
++    // unlink，跳过重启（仅记一条 debug）。文件真被删除时 existsSync 为 false，
++    // 仍会照常重启，不影响正常行为。
++    const guardedUnlink = handleChangeRestart("Configuration file removed.");
++    unlinkHandler = async function(changedFile) {
++      if (existsSync(changedFile)) {
++        logger.info(
++          "watch",
++          `忽略一次幻影 unlink：${changedFile} 仍在磁盘上，跳过重启（chokidar 误报）`
++        );
++        return;
++      }
++      return guardedUnlink(changedFile);
++    };
+     addHandler = handleChangeRestart("Configuration file added.");
+     watcher.on("change", changeHandler);
+     watcher.on("unlink", unlinkHandler);
 diff --git a/dist/core/logger/vite.js b/dist/core/logger/vite.js
 index e1f79d49bc390246f5bbc9caccf7a6d833b1f9d6..d8c22f7abce7624887471259fba422a04165e949 100644
 --- a/dist/core/logger/vite.js
