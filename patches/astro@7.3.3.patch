@@ -1,138 +1,5 @@
-diff --git a/dist/content/config-prewarm.js b/dist/content/config-prewarm.js
-index ce5c7788b615362416b280f54fb745f4b0624cdd..147d4aa07b96d95767ca2e451eb9ec7091c3d230 100644
---- a/dist/content/config-prewarm.js
-+++ b/dist/content/config-prewarm.js
-@@ -1,5 +1,6 @@
- import { getContentPaths, reloadContentConfigObserver } from "./utils.js";
- let inFlight;
-+let inFlightEnvironment;
- function getContentConfigLoadPromise() {
-   return inFlight;
- }
-@@ -9,7 +10,7 @@ function kickOffContentConfigLoad({
-   logger,
-   environment
- }) {
--  if (inFlight) {
-+  if (inFlight && inFlightEnvironment === environment) {
-     return inFlight;
-   }
-   const contentPaths = getContentPaths(
-@@ -20,14 +21,27 @@ function kickOffContentConfigLoad({
-   if (!contentPaths.config.exists) {
-     return Promise.resolve();
-   }
--  inFlight = reloadContentConfigObserver({
-+  // Patch: a Vite dev-server restart creates a new environment. An in-flight
-+  // load from a previous environment belongs to a module runner that is about
-+  // to be closed, so it must not be reused (it would hang for the transport
-+  // timeout and then fail with "module runner has been closed"). Start a fresh
-+  // load bound to the current environment instead.
-+  inFlightEnvironment = environment;
-+  const load = reloadContentConfigObserver({
-     fs,
-     settings,
-     environment,
-     logger
--  }).finally(() => {
--    inFlight = void 0;
-   });
-+  const tracked = load.finally(() => {
-+    // Only clear the slot if this load is still the current one, so that a
-+    // stale load settling after a restart does not drop the fresh load.
-+    if (inFlight === tracked) {
-+      inFlight = void 0;
-+      inFlightEnvironment = void 0;
-+    }
-+  });
-+  inFlight = tracked;
-   return inFlight;
- }
- export {
-diff --git a/dist/content/utils.js b/dist/content/utils.js
-index 6e5b6e6f95c64bbb800bd16221e5f549d2d3f14b..1d57fde299db26094e2d78e7f10dd5b1973a81b9 100644
---- a/dist/content/utils.js
-+++ b/dist/content/utils.js
-@@ -472,10 +472,12 @@ The following collections have been auto-generated: ${orphanedCollections.map((n
-   }
-   return { ...config, collections };
- }
-+let contentConfigReloadId = 0;
- async function reloadContentConfigObserver({
-   observer = globalContentConfigObserver,
-   ...loadContentConfigOpts
- }) {
-+  const reloadId = ++contentConfigReloadId;
-   observer.set({ status: "loading" });
-   try {
-     let config = await loadContentConfig(loadContentConfigOpts);
-@@ -483,12 +485,32 @@ async function reloadContentConfigObserver({
-       config,
-       ...loadContentConfigOpts
-     });
-+    if (reloadId !== contentConfigReloadId) {
-+      loadContentConfigOpts.logger?.debug(
-+        "content",
-+        `Discarded a stale content config reload (#${reloadId}, current #${contentConfigReloadId}).`
-+      );
-+      return;
-+    }
-     if (config) {
-       observer.set({ status: "loaded", config });
-     } else {
-       observer.set({ status: "does-not-exist" });
-     }
-   } catch (e) {
-+    // Patch: only the latest reload may write an error. After a Vite dev-server
-+    // restart, stale loads from a previous environment resolve against a closed
-+    // module runner; their failure must not clobber the current environment's
-+    // "loaded" state (which would skip content sync and empty the stores).
-+    // The error is still surfaced at debug level so a real config failure that
-+    // happens to race with a restart is never dropped without a trace.
-+    if (reloadId !== contentConfigReloadId) {
-+      loadContentConfigOpts.logger?.debug(
-+        "content",
-+        `Discarded a stale content config reload (#${reloadId}, current #${contentConfigReloadId}): ${e instanceof Error ? e.message : e}`
-+      );
-+      return;
-+    }
-     observer.set({
-       status: "error",
-       error: e instanceof Error ? e : new AstroError(AstroErrorData.UnknownContentCollectionError)
-diff --git a/dist/vite-plugin-astro-server/plugin.js b/dist/vite-plugin-astro-server/plugin.js
-index 8a3ca83d53db780245ab589a30151d9e02241aa1..470c8d3576b7e7c4a35c6566280bf0459e229f58 100644
---- a/dist/vite-plugin-astro-server/plugin.js
-+++ b/dist/vite-plugin-astro-server/plugin.js
-@@ -60,10 +60,25 @@ function createVitePluginAstroServer({
-         [contentConfigLoad, ssrHandlerPromise, prerenderHandlerPromise].filter(Boolean)
-       ).then(() => void 0);
-       ssrHandlerPromise?.catch((error) => {
--        logger.error(null, `Failed to create the dev server app: ${error?.message ?? error}`);
-+        // Patch: a dev-server restart closes this environment's module runner
-+        // while the handler is still being created, so the resulting rejection
-+        // is expected noise (the new server creates its own handler). Demote it
-+        // to debug instead of dropping it, so a real failure that happens to
-+        // land during shutdown is still traceable via --verbose.
-+        const message = `Failed to create the dev server app: ${error?.message ?? error}`;
-+        if (runnableSsrEnvironment && !runnableSsrEnvironment.runner.isClosed()) {
-+          logger.error(null, message);
-+        } else {
-+          logger.debug("server", `${message} (module runner closed, likely a dev-server restart)`);
-+        }
-       });
-       prerenderHandlerPromise?.catch((error) => {
--        logger.error(null, `Failed to create the prerender server app: ${error?.message ?? error}`);
-+        const message = `Failed to create the prerender server app: ${error?.message ?? error}`;
-+        if (runnablePrerenderEnvironment && !runnablePrerenderEnvironment.runner.isClosed()) {
-+          logger.error(null, message);
-+        } else {
-+          logger.debug("server", `${message} (module runner closed, likely a dev-server restart)`);
-+        }
-       });
-       const localStorage = new AsyncLocalStorage();
-       async function handleUnhandledRejection(rejection) {
 diff --git a/dist/cli/dev/index.js b/dist/cli/dev/index.js
-index f6a3551..2d8bf67 100644
+index f6a35519edd4d151b549c6b657bbdbeda172344c..2d8bf67fccd4751c4662228c0ffe27b866a9feab 100644
 --- a/dist/cli/dev/index.js
 +++ b/dist/cli/dev/index.js
 @@ -1,6 +1,7 @@
@@ -205,36 +72,126 @@ index f6a3551..2d8bf67 100644
    }
    return server;
  }
-diff --git a/dist/core/dev/lockfile.js b/dist/core/dev/lockfile.js
-index bb43a10..c92943d 100644
---- a/dist/core/dev/lockfile.js
-+++ b/dist/core/dev/lockfile.js
-@@ -60,7 +60,11 @@ async function isLockFileProcessAlive(data, find = findProcess) {
-     );
-     return processInfo?.cmd === void 0 || isAstroCommand(processInfo.cmd);
-   } catch {
--    return true;
-+    // Patch: a failed process lookup must not be read as "still alive". The old
-+    // fail-safe value made a stale lock file permanent: once a dev server was
-+    // gone, `astro dev` reported it as running forever and refused to start
-+    // until the lock file was deleted by hand.
-+    return false;
-   }
+diff --git a/dist/content/config-prewarm.js b/dist/content/config-prewarm.js
+index ce5c7788b615362416b280f54fb745f4b0624cdd..147d4aa07b96d95767ca2e451eb9ec7091c3d230 100644
+--- a/dist/content/config-prewarm.js
++++ b/dist/content/config-prewarm.js
+@@ -1,5 +1,6 @@
+ import { getContentPaths, reloadContentConfigObserver } from "./utils.js";
+ let inFlight;
++let inFlightEnvironment;
+ function getContentConfigLoadPromise() {
+   return inFlight;
  }
- function readLockFile(root, command = "dev") {
+@@ -9,7 +10,7 @@ function kickOffContentConfigLoad({
+   logger,
+   environment
+ }) {
+-  if (inFlight) {
++  if (inFlight && inFlightEnvironment === environment) {
+     return inFlight;
+   }
+   const contentPaths = getContentPaths(
+@@ -20,14 +21,27 @@ function kickOffContentConfigLoad({
+   if (!contentPaths.config.exists) {
+     return Promise.resolve();
+   }
+-  inFlight = reloadContentConfigObserver({
++  // Patch: a Vite dev-server restart creates a new environment. An in-flight
++  // load from a previous environment belongs to a module runner that is about
++  // to be closed, so it must not be reused (it would hang for the transport
++  // timeout and then fail with "module runner has been closed"). Start a fresh
++  // load bound to the current environment instead.
++  inFlightEnvironment = environment;
++  const load = reloadContentConfigObserver({
+     fs,
+     settings,
+     environment,
+     logger
+-  }).finally(() => {
+-    inFlight = void 0;
+   });
++  const tracked = load.finally(() => {
++    // Only clear the slot if this load is still the current one, so that a
++    // stale load settling after a restart does not drop the fresh load.
++    if (inFlight === tracked) {
++      inFlight = void 0;
++      inFlightEnvironment = void 0;
++    }
++  });
++  inFlight = tracked;
+   return inFlight;
+ }
+ export {
+diff --git a/dist/content/content-layer.js b/dist/content/content-layer.js
+index 9291ac690b642c937915ed0092524f74593325ae..dada85c5eef0d1ac08e4a83ff541c75b8e02976c 100644
+--- a/dist/content/content-layer.js
++++ b/dist/content/content-layer.js
+@@ -266,6 +266,10 @@ ${contentConfig.error.message}`
+       })
+     );
+     this.#validateReferences(contentConfig.config.collections, logger);
++    // Patch: 所有 loader 已执行完毕，集合已重新填充。解除 clearAll() 造成的
++    // 落盘挂起，使下面的 writeAssetImports / writeModuleImports 写入真实数据
++    // 而不是空 Map。必须放在此处——早于 loader 完成则仍会写空。
++    this.#store.resumeWrites();
+     await fs.mkdir(this.#settings.config.cacheDir, { recursive: true });
+     await fs.mkdir(this.#settings.dotAstroDir, { recursive: true });
+     const assetImportsFile = new URL(ASSET_IMPORTS_FILE, this.#settings.dotAstroDir);
+diff --git a/dist/content/loaders/glob.js b/dist/content/loaders/glob.js
+index 07c94e7fe59e2068b4cfd57da5a0aa313618515d..971300e61c65c4c2b1d7f6dd7ee63c5d05cb7bce 100644
+--- a/dist/content/loaders/glob.js
++++ b/dist/content/loaders/glob.js
+@@ -240,7 +240,22 @@ function glob(globOptions) {
+           skippedFiles.forEach((file) => logger.warn(`\u2022 ${colors.green(file)}`));
+         }
+       }
+-      untouchedEntries.forEach((id) => store.delete(id));
++      // Patch: 若本次扫描一个文件都没匹配到（files.length === 0），但 baseDir 仍
++      // 存在、且集合此前有条目（untouchedEntries 非空），几乎可断定这是 dev 全量
++      // 重启 / "Vite module runner has been closed" 期间的一次「幻空」扫描
++      // （tinyglobby 在目录仍在的情况下返回了空数组），而不是用户真把内容删光了。
++      // 此时若照常 prune，会把整个集合 store.delete 清空并 debounce 落盘固化，
++      // 导致 data-store.json 塌成空壳、content-modules.mjs 变成 new Map()，
++      // /about/ 等走 getEntry 的页面报 "Entry spec was not found"（500）。
++      // 跳过这次 prune：既保留内存里的条目（当前进程继续 200），也不写空盘
++      // （下次重启从磁盘载回的仍是完好数据）。下一次正常扫描再做对齐。
++      if (files.length === 0 && exists && untouchedEntries.size > 0) {
++        logger.warn(
++          `glob loader: 跳过一次幻空扫描的 prune（collection="${collection}"，保留 ${untouchedEntries.size} 条既有条目；通常发生在 dev 全量重启窗口）`
++        );
++      } else {
++        untouchedEntries.forEach((id) => store.delete(id));
++      }
+       if (!watcher) {
+         return;
+       }
 diff --git a/dist/content/mutable-data-store.js b/dist/content/mutable-data-store.js
+index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b4234e6b1 100644
 --- a/dist/content/mutable-data-store.js
 +++ b/dist/content/mutable-data-store.js
-@@ -28,6 +28,8 @@
+@@ -28,6 +28,12 @@ class MutableDataStore extends ImmutableDataStore {
    #modulesDirty = false;
    #assetImports = /* @__PURE__ */ new Set();
    #moduleImports = /* @__PURE__ */ new Map();
 +  // Patch: clearAll() 之后到重建完成之间为 true，期间不把空 Map 落盘
 +  #writesSuspended = false;
++  // Patch: 记录本进程内「曾经装过条目」的集合名。用于 writeToDisk() 的塌缩
++  // 保护——一个曾有内容的集合若在某次落盘时变空，几乎必是 dev 重启/glob 幻空
++  // 扫描/loader 中途抛错造成的临时态，绝不能用空值覆盖磁盘上的好数据。
++  #populatedCollections = /* @__PURE__ */ new Set();
    #writeInProgress = false;
    #writeQueued = false;
    #fileWrittenListeners = /* @__PURE__ */ new Set();
-@@ -78,11 +80,25 @@
+@@ -60,6 +66,7 @@ class MutableDataStore extends ImmutableDataStore {
+     const collection = this._collections.get(collectionName) ?? /* @__PURE__ */ new Map();
+     collection.set(String(key), value);
+     this._collections.set(collectionName, collection);
++    this.#populatedCollections.add(collectionName);
+     this.#saveToDiskDebounced();
+   }
+   delete(collectionName, key) {
+@@ -78,11 +85,29 @@ class MutableDataStore extends ImmutableDataStore {
      this.#writeModulesImportsDebounced();
    }
    clearAll() {
@@ -254,31 +211,45 @@ diff --git a/dist/content/mutable-data-store.js b/dist/content/mutable-data-stor
 +  resumeWrites() {
 +    if (!this.#writesSuspended) return;
 +    this.#writesSuspended = false;
++    // Patch: 恢复后把重建好的真实数据写回 data-store.json（挂起期间被跳过的
++    // 那次落盘）。#dirty 在挂起期间保持为真，这里触发的 debounce 会写出
++    // 当前完整的 _collections，而非 clearAll() 留下的空集合。
++    this.#saveToDiskDebounced();
 +    this.#writeAssetsImportsDebounced();
 +    this.#writeModulesImportsDebounced();
 +  }
    addAssetImport(assetImport, filePath) {
      const id = imageSrcToImportId(assetImport, filePath);
      if (id) {
-@@ -146,6 +162,8 @@
+@@ -146,6 +171,12 @@ class MutableDataStore extends ImmutableDataStore {
      this.#assetsFile = filePath;
      this.#rebuildAssetImports();
      if (this.#assetImports.size === 0) {
-+      // Patch: 重建期间的空集合是临时状态，不落盘，保留磁盘上的旧值
-+      if (this.#writesSuspended) return;
++      // Patch: 重建期间的空集合是临时状态，不落盘，保留磁盘上的旧值。
++      // 除 clearAll 挂起(#writesSuspended)外，还要挡住「本进程已装过条目、
++      // 但本次 rebuild 撞上 _collections 瞬时为空」的情况（dev 重启窗口里
++      // writeToDisk 有塌缩保护、data-store.json 保住了完整数据，若这里仍把
++      // content-assets.mjs 写空，就会出现 data-store 满 / .mjs 空的错位）。
++      if (this.#writesSuspended || this.#populatedCollections.size > 0) return;
        try {
          await this.#writeFileAtomic(filePath, "export default new Map();");
        } catch (err) {
-@@ -181,6 +199,8 @@
+@@ -181,6 +212,14 @@ export default new Map([${exports.join(", ")}]);
      this.#modulesFile = filePath;
      this.#rebuildModuleImports();
      if (this.#moduleImports.size === 0) {
-+      // Patch: 同 writeAssetImports——重建期间不把空 Map 固化到磁盘
-+      if (this.#writesSuspended) return;
++      // Patch: 同 writeAssetImports——重建期间不把空 Map 固化到磁盘。
++      // 这是 /（首页）报 UnknownContentCollectionError 的直接成因：dev 重启
++      // 窗口里本次 rebuild 撞上 _collections 瞬时为空 → 把 content-modules.mjs
++      // 写成 `export default new Map();`，而 data-store.json 因塌缩保护仍是满的，
++      // 于是 deferredRender 的 posts/spec 全都找不到模块。#populatedCollections
++      // 非空即说明「本该有 deferredRender 条目」，此刻空必是临时错位，跳过写空、
++      // 保留磁盘上的好文件（下一次带内容的 rebuild 再正常覆盖）。
++      if (this.#writesSuspended || this.#populatedCollections.size > 0) return;
        try {
          await this.#writeFileAtomic(filePath, "export default new Map();");
        } catch (err) {
-@@ -282,14 +302,18 @@
+@@ -282,14 +321,18 @@ ${lines.join(",\n")}]);
      }, SAVE_DEBOUNCE_MS);
    }
    #writing = /* @__PURE__ */ new Set();
@@ -299,7 +270,7 @@ diff --git a/dist/content/mutable-data-store.js b/dist/content/mutable-data-stor
        return;
      }
      this.#writing.add(fileKey);
-@@ -304,9 +328,11 @@
+@@ -304,9 +347,11 @@ ${lines.join(",\n")}]);
        this.#notifyFileWritten(filePath);
      } finally {
        this.#writing.delete(fileKey);
@@ -313,17 +284,211 @@ diff --git a/dist/content/mutable-data-store.js b/dist/content/mutable-data-stor
        }
      }
    }
-diff --git a/dist/content/content-layer.js b/dist/content/content-layer.js
---- a/dist/content/content-layer.js
-+++ b/dist/content/content-layer.js
-@@ -266,6 +266,10 @@
-       })
+@@ -429,9 +474,35 @@ ${lines.join(",\n")}]);
+     return serializeDataStore(this._collections);
+   }
+   async writeToDisk() {
++    if (this.#writesSuspended) {
++      // Patch: clearAll() 后到 resumeWrites() 之间，_collections 处于被清空的
++      // 临时状态。此前只挂起了 content-modules/-assets 两个 .mjs 的落盘，却
++      // 漏掉了 data-store.json 这个真正的数据源——debounce 到点仍会把空的
++      // _collections 序列化覆盖磁盘（表现为 data-store.json 缩到 ~6KB、四个
++      // 集合全空），随后 .mjs 也据此重建为空 Map，即 "Entry spec was not
++      // found" / 整页 500 的根因。这里保持 #dirty 不清，等 resumeWrites()
++      // 恢复后再把重建好的真实数据写盘。若重建中途 loader 抛错（如 dev 下
++      // "Vite module runner has been closed"），resumeWrites() 不会被调用，
++      // 挂起状态得以保留，磁盘上的旧的完整数据因此不被空值覆盖。
++      return;
++    }
+     if (!this.#dirty) {
+       return;
+     }
++    // Patch: 塌缩保护（覆盖 clearAll 之外的所有清空路径，尤其 glob loader 幻空
++    // 扫描时 store.delete 把整个集合删空这条——它不经过 clearAll，因此不被
++    // #writesSuspended 拦截）。凡本进程内「曾装过条目」的集合，若此刻在
++    // _collections 里已不存在或为空，判定为 dev 重启/中断造成的临时塌缩，
++    // 拒绝把这份残缺数据写盘并保持 #dirty，使磁盘上一份完好的 data-store.json
++    // 得以保留——任何一次后续重启都能从磁盘载回正确内容，不再出现 /about/ 500。
++    // 代价：若用户真的删光某个集合的全部内容，需重启 dev 才会落盘，这在本项目
++    // （每个集合恒有文件）不会发生，取舍可接受。
++    for (const name of this.#populatedCollections) {
++      const collection = this._collections.get(name);
++      if (!collection || collection.size === 0) {
++        return;
++      }
++    }
+     if (!this.#writer) {
+       throw new AstroError(AstroErrorData.UnknownFilesystemError);
+     }
+@@ -472,6 +543,14 @@ ${lines.join(",\n")}]);
+   static async fromMap(data) {
+     const store = new MutableDataStore();
+     store._collections = data;
++    // Patch: 进程启动时从磁盘/虚拟模块载入的集合，凡当前非空的都登记为
++    // 「曾装过条目」，这样 writeToDisk() 的塌缩保护对「重启后 glob 幻空扫描
++    // 把已载入集合删空」这条路径同样生效。
++    for (const [name, collection] of data) {
++      if (collection && collection.size > 0) {
++        store.#populatedCollections.add(name);
++      }
++    }
+     return store;
+   }
+   static async fromString(data) {
+diff --git a/dist/content/utils.js b/dist/content/utils.js
+index 6e5b6e6f95c64bbb800bd16221e5f549d2d3f14b..1d57fde299db26094e2d78e7f10dd5b1973a81b9 100644
+--- a/dist/content/utils.js
++++ b/dist/content/utils.js
+@@ -472,10 +472,12 @@ The following collections have been auto-generated: ${orphanedCollections.map((n
+   }
+   return { ...config, collections };
+ }
++let contentConfigReloadId = 0;
+ async function reloadContentConfigObserver({
+   observer = globalContentConfigObserver,
+   ...loadContentConfigOpts
+ }) {
++  const reloadId = ++contentConfigReloadId;
+   observer.set({ status: "loading" });
+   try {
+     let config = await loadContentConfig(loadContentConfigOpts);
+@@ -483,12 +485,32 @@ async function reloadContentConfigObserver({
+       config,
+       ...loadContentConfigOpts
+     });
++    if (reloadId !== contentConfigReloadId) {
++      loadContentConfigOpts.logger?.debug(
++        "content",
++        `Discarded a stale content config reload (#${reloadId}, current #${contentConfigReloadId}).`
++      );
++      return;
++    }
+     if (config) {
+       observer.set({ status: "loaded", config });
+     } else {
+       observer.set({ status: "does-not-exist" });
+     }
+   } catch (e) {
++    // Patch: only the latest reload may write an error. After a Vite dev-server
++    // restart, stale loads from a previous environment resolve against a closed
++    // module runner; their failure must not clobber the current environment's
++    // "loaded" state (which would skip content sync and empty the stores).
++    // The error is still surfaced at debug level so a real config failure that
++    // happens to race with a restart is never dropped without a trace.
++    if (reloadId !== contentConfigReloadId) {
++      loadContentConfigOpts.logger?.debug(
++        "content",
++        `Discarded a stale content config reload (#${reloadId}, current #${contentConfigReloadId}): ${e instanceof Error ? e.message : e}`
++      );
++      return;
++    }
+     observer.set({
+       status: "error",
+       error: e instanceof Error ? e : new AstroError(AstroErrorData.UnknownContentCollectionError)
+diff --git a/dist/core/dev/lockfile.js b/dist/core/dev/lockfile.js
+index bb43a1049418b75d9358359099a20855eae6b4da..c92943dfc41f7b786af951f10b1c23297fb0dbdc 100644
+--- a/dist/core/dev/lockfile.js
++++ b/dist/core/dev/lockfile.js
+@@ -60,7 +60,11 @@ async function isLockFileProcessAlive(data, find = findProcess) {
      );
-     this.#validateReferences(contentConfig.config.collections, logger);
-+    // Patch: 所有 loader 已执行完毕，集合已重新填充。解除 clearAll() 造成的
-+    // 落盘挂起，使下面的 writeAssetImports / writeModuleImports 写入真实数据
-+    // 而不是空 Map。必须放在此处——早于 loader 完成则仍会写空。
-+    this.#store.resumeWrites();
-     await fs.mkdir(this.#settings.config.cacheDir, { recursive: true });
-     await fs.mkdir(this.#settings.dotAstroDir, { recursive: true });
-     const assetImportsFile = new URL(ASSET_IMPORTS_FILE, this.#settings.dotAstroDir);
+     return processInfo?.cmd === void 0 || isAstroCommand(processInfo.cmd);
+   } catch {
+-    return true;
++    // Patch: a failed process lookup must not be read as "still alive". The old
++    // fail-safe value made a stale lock file permanent: once a dev server was
++    // gone, `astro dev` reported it as running forever and refused to start
++    // until the lock file was deleted by hand.
++    return false;
+   }
+ }
+ function readLockFile(root, command = "dev") {
+diff --git a/dist/core/logger/vite.js b/dist/core/logger/vite.js
+index e1f79d49bc390246f5bbc9caccf7a6d833b1f9d6..d8c22f7abce7624887471259fba422a04165e949 100644
+--- a/dist/core/logger/vite.js
++++ b/dist/core/logger/vite.js
+@@ -17,10 +17,30 @@ const lightningcssUnsupportedPseudoMsg = /\[lightningcss\] 'global'.*not recogni
+ function createViteLogger(astroLogger, viteLogLevel = "info") {
+   const warnedMessages = /* @__PURE__ */ new Set();
+   const loggedErrors = /* @__PURE__ */ new WeakSet();
++  // Patch: vite 有时会把「非字符串」传进这些日志方法——尤其 dev 全量重启期间
++  // module runner 关闭后，`Vite module runner has been closed.` 是以 Error 对象
++  // （而非字符串）交给 error(msg)。原实现直接 `msg.includes(...)` /
++  // `stripVTControlCharacters(msg)`，对非字符串会抛 `msg.includes is not a
++  // function`。这个异常发生在 vite 内部的错误回调里、没有被 catch，直接冲垮
++  // Node 进程 → `[ELIFECYCLE] Command failed with exit code 1`，表现为「刷新
++  // 页面后 dev server 直接挂掉、端口不再监听」。这里统一把入参规整为字符串，
++  // 既避免崩溃，又尽量保留原始信息（Error 取 stack/message）。
++  const toMessageString = (msg) => {
++    if (typeof msg === "string") return msg;
++    if (msg == null) return String(msg);
++    if (msg instanceof Error) return msg.stack || msg.message || String(msg);
++    if (typeof msg.message === "string") return msg.message;
++    try {
++      return String(msg);
++    } catch {
++      return "[unserializable vite log message]";
++    }
++  };
+   const logger = {
+     hasWarned: false,
+     info(msg) {
+       if (!isLogLevelEnabled(viteLogLevel, "info")) return;
++      msg = toMessageString(msg);
+       const stripped = stripVTControlCharacters(msg);
+       let m;
+       if (m = vitePageReloadMsg.exec(stripped)) {
+@@ -39,12 +59,14 @@ function createViteLogger(astroLogger, viteLogLevel = "info") {
+     },
+     warn(msg) {
+       if (!isLogLevelEnabled(viteLogLevel, "warn")) return;
++      msg = toMessageString(msg);
+       if (lightningcssUnsupportedPseudoMsg.test(msg)) return;
+       logger.hasWarned = true;
+       astroLogger.warn("vite", msg);
+     },
+     warnOnce(msg) {
+       if (!isLogLevelEnabled(viteLogLevel, "warn")) return;
++      msg = toMessageString(msg);
+       if (warnedMessages.has(msg)) return;
+       logger.hasWarned = true;
+       astroLogger.warn("vite", msg);
+@@ -56,6 +78,7 @@ function createViteLogger(astroLogger, viteLogLevel = "info") {
+       const err = opts?.error;
+       if (err) loggedErrors.add(err);
+       if (err && isAstroError(err)) return;
++      msg = toMessageString(msg);
+       if (msg.includes("Error when evaluating SSR module") || msg.includes("Pre-transform error:")) {
+         astroLogger.debug("vite", msg);
+         return;
+diff --git a/dist/vite-plugin-astro-server/plugin.js b/dist/vite-plugin-astro-server/plugin.js
+index 8a3ca83d53db780245ab589a30151d9e02241aa1..470c8d3576b7e7c4a35c6566280bf0459e229f58 100644
+--- a/dist/vite-plugin-astro-server/plugin.js
++++ b/dist/vite-plugin-astro-server/plugin.js
+@@ -60,10 +60,25 @@ function createVitePluginAstroServer({
+         [contentConfigLoad, ssrHandlerPromise, prerenderHandlerPromise].filter(Boolean)
+       ).then(() => void 0);
+       ssrHandlerPromise?.catch((error) => {
+-        logger.error(null, `Failed to create the dev server app: ${error?.message ?? error}`);
++        // Patch: a dev-server restart closes this environment's module runner
++        // while the handler is still being created, so the resulting rejection
++        // is expected noise (the new server creates its own handler). Demote it
++        // to debug instead of dropping it, so a real failure that happens to
++        // land during shutdown is still traceable via --verbose.
++        const message = `Failed to create the dev server app: ${error?.message ?? error}`;
++        if (runnableSsrEnvironment && !runnableSsrEnvironment.runner.isClosed()) {
++          logger.error(null, message);
++        } else {
++          logger.debug("server", `${message} (module runner closed, likely a dev-server restart)`);
++        }
+       });
+       prerenderHandlerPromise?.catch((error) => {
+-        logger.error(null, `Failed to create the prerender server app: ${error?.message ?? error}`);
++        const message = `Failed to create the prerender server app: ${error?.message ?? error}`;
++        if (runnablePrerenderEnvironment && !runnablePrerenderEnvironment.runner.isClosed()) {
++          logger.error(null, message);
++        } else {
++          logger.debug("server", `${message} (module runner closed, likely a dev-server restart)`);
++        }
+       });
+       const localStorage = new AsyncLocalStorage();
+       async function handleUnhandledRejection(rejection) {
