@@ -61,7 +61,8 @@ export const backgroundWallpaper: BackgroundWallpaperConfig = {
 		// 支持单个视频路径（字符串）或多个视频循环（数组，参考上面壁纸配置）
 		// 支持远程视频URL，本地视频请放在 public/assets/videos/ 目录下
 		// playerUrl: "/assets/videos/firefly.mp4",
-		playerUrl: "https://bed.twoleaf.cn/file/1785658612716_firefly.mp4",
+		playerUrl:
+			"http://inori.yorushika.cyou/mv/%E3%80%90%F0%9D%90%87%F0%9D%90%A2-%F0%9D%90%91%F0%9D%90%9E%F0%9D%90%AC%E3%80%91%E5%8A%A8%E6%BC%AB%E9%9F%B3%E4%B9%90%20P1%20%E3%80%90%F0%9D%9F%92%F0%9D%90%8A_%F0%9D%9F%8F%F0%9D%9F%90%F0%9D%9F%8E%F0%9D%90%85%F0%9D%90%8F%F0%9D%90%92_%F0%9D%90%87%F0%9D%90%A2-%F0%9D%90%91%F0%9D%90%9E%F0%9D%90%AC%E3%80%91%E3%80%8A%E7%BD%AA%E6%81%B6%E7%8E%8B%E5%86%A0%E3%80%8B%E7%89%87%E5%B0%BE%E6%9B%B2%20Departures~%E7%A6%BB%E5%88%AB~%E8%B5%A0%E4%BA%8E%E4%BD%A0%E7%9A%84%E7%88%B1%E4%B9%8B%E6%AD%8C~%E3%80%90%E5%AE%8C%E6%95%B4%E7%89%88_%E5%AE%98%E6%96%B9MV%E3%80%91_34777534268_compressed.mp4",
 	},
 	// 横幅壁纸和全屏壁纸共享配置
 	common: {
