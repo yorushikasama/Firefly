@@ -350,9 +350,19 @@ export default defineConfig({
 			],
 		}),
 	},
-	vite: {
-		plugins: [tailwindcss()],
-		server: {
+		vite: {
+			plugins: [tailwindcss()],
+			// @iconify/svelte/offline 的 package.json exports["."] 只声明了 svelte/types
+			// 两个 condition，没有 import/default。vite 的依赖预扫描（dep-scan）在
+			// ["module","browser","development","astro","import"] 条件下解析它会失败，
+			// 报 `"." is not exported ...` → `Failed to run dependency scan, Skipping
+			// dependency pre-bundling`，并在重启后偶发 `Cannot find module
+			// 'virtual:astro-icon'`、首屏 500。它本是交给 svelte 插件按需编译的 .svelte
+			// 组件，本不该被预打包，这里显式排除，切断这条扫描报错链路。
+			optimizeDeps: {
+				exclude: ["@iconify/svelte/offline"],
+			},
+			server: {
 			watch: {
 				ignored: [
 					"**/package/**",
@@ -406,3 +416,4 @@ export default defineConfig({
 		},
 	},
 });
+
