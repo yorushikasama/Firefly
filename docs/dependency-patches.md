@@ -1,6 +1,6 @@
 # 依赖补丁说明
 
-本仓库通过 `pnpm patch` 给三个依赖打了本地补丁，配置在 [pnpm-workspace.yaml](../pnpm-workspace.yaml) 的 `patchedDependencies`。三个补丁都是为了修复 **dev server 重启时的内存泄漏与误报错误**，全部源自同一个上游问题。
+本仓库通过 `pnpm patch` 给三个依赖打了本地补丁，配置在 [pnpm-workspace.yaml](../pnpm-workspace.yaml) 的 `patchedDependencies`。其中 vite / rolldown 两个补丁是为了修复 **dev server 重启时的内存泄漏与误报错误**，来源于同一个上游问题；astro 补丁处理同一类重启错位，并额外修掉了一个**会让构建失败**的副作用。
 
 相关上游追踪：
 
@@ -39,11 +39,28 @@
 
 ### `patches/astro@7.3.3.patch`
 
-三处改动：
+四处改动：
 
 1. `dist/content/config-prewarm.js`：给 in-flight 的 content config 加载绑定 environment，只有 environment 相同才复用；`finally` 里加 `if (inFlight === tracked)` 守卫，避免旧加载 settle 时抹掉新加载的 slot。仅 dev（该插件只在 `command === "dev"` 注册）。
 2. `dist/content/utils.js`：给 `reloadContentConfigObserver` 加递增 `contentConfigReloadId`，只允许最新一次 reload 写 observer，防止旧 environment 的失败覆盖当前的 `loaded` 状态。**这条路径 `astro build` 的 content sync 也会走**，所以被丢弃的 stale 结果会通过 `logger.debug("content", ...)` 留痕，不会静默消失（用 `astro dev --verbose` 可见）。
 3. `dist/vite-plugin-astro-server/plugin.js`：handler 创建失败时，若 runner 已关闭则把日志从 `error` 降级为 `debug`（而非完全静默），避免重启噪音同时保留可追溯性。仅 dev。
+4. `dist/content/mutable-data-store.js` + `dist/content/loaders/glob.js` + `dist/content/content-layer.js`：**塌缩保护按命令区分**（见下节），修掉构建期漏写。
+
+#### 第 4 处：塌缩保护必须只在 dev 生效
+
+dev 下要保护什么：重启窗口里 glob loader 可能对仍然存在的目录扫出一次「幻空」结果，或 loader 被已关闭的 module runner 打断，使某个集合在内存里瞬时变空。此时若把这份残缺数据落盘，磁盘上的好索引就被空值固化，之后走 `getEntry` 的页面（如 `/about/`）会 500。所以 dev 下宁可拒绝写：
+
+- `writeToDisk()` 在 `#restartGuardEnabled` 为真时，若某个「本进程装过条目」的集合变空则直接 `return`。
+- `writeAssetImports()` / `writeModuleImports()` 在 `#restartGuardEnabled` 为真且 `#populatedCollections` 非空时，不把空 Map 固化到磁盘。
+- glob loader 的「跳过幻空扫描 prune」分支同样加了 `watcher &&` 条件。
+
+**但 build / sync 里不存在这种瞬时错位**：集合变空只可能是内容真的被删掉了。此时若继续拒绝落盘，磁盘上会残留已删除条目的旧索引，而 `content-modules.mjs` 已按真实内容重写，两者错位后渲染 feed 会抛 `UnknownContentCollectionError: Unexpected error while rendering → <旧 id>`。
+
+Vercel 等平台会**恢复上一次部署的构建缓存**，而构建期的内容索引落在 `node_modules/.astro/data-store.json`（`cacheDir`；dev 用的是 `.astro/`，`dotAstroDir`）。只要你删过内容，下几次部署就会命中这条错位，构建直接失败且报错指向一个早已不存在的条目。
+
+因此开关由 `content-layer.js` 在 sync 完成后按「本层是否挂了 watcher」设置：watcher 只在 dev 传入（`core/dev/dev.js` 传 `viteServer.watcher`，`core/sync/index.js` 的 build 路径不传），恰好就是幻空扫描的来源。默认值仍为 `true`，`setRestartGuard(false)` 只由 build/sync 路径触发。
+
+回归验证：`pnpm dev` 下增删文章应正常反映；构建期用一份含已删条目的旧 `node_modules/.astro/data-store.json` 跑 `pnpm build`，应成功且该条目被 prune 掉（索引从 ~1.9MB 缩回 ~84KB）。
 
 ## 维护须知
 

@@ -124,25 +124,30 @@ index ce5c7788b615362416b280f54fb745f4b0624cdd..147d4aa07b96d95767ca2e451eb9ec70
  }
  export {
 diff --git a/dist/content/content-layer.js b/dist/content/content-layer.js
-index 9291ac690b642c937915ed0092524f74593325ae..dada85c5eef0d1ac08e4a83ff541c75b8e02976c 100644
+index 9291ac690b642c937915ed0092524f74593325ae..fd11e7473e7bfdd553e3db1109f4a42f961393c9 100644
 --- a/dist/content/content-layer.js
 +++ b/dist/content/content-layer.js
-@@ -266,6 +266,10 @@ ${contentConfig.error.message}`
+@@ -266,6 +266,15 @@ ${contentConfig.error.message}`
        })
      );
      this.#validateReferences(contentConfig.config.collections, logger);
 +    // Patch: 所有 loader 已执行完毕，集合已重新填充。解除 clearAll() 造成的
 +    // 落盘挂起，使下面的 writeAssetImports / writeModuleImports 写入真实数据
 +    // 而不是空 Map。必须放在此处——早于 loader 完成则仍会写空。
++    // Patch: 按「本层是否挂了 watcher」区分 dev 与 build/sync，决定塌缩保护开关。
++    // watcher 只在 dev 传入（build/sync 走 syncInternal，不传 watcher），而在 dev
++    // 里它恰恰是幻空扫描/重启错位的来源；build 下集合变空只可能是内容真被删掉，
++    // 必须如实落盘，否则磁盘会残留已删条目的旧索引并与 content-modules.mjs 错位。
++    this.#store.setRestartGuard(this.#watcher !== void 0);
 +    this.#store.resumeWrites();
      await fs.mkdir(this.#settings.config.cacheDir, { recursive: true });
      await fs.mkdir(this.#settings.dotAstroDir, { recursive: true });
      const assetImportsFile = new URL(ASSET_IMPORTS_FILE, this.#settings.dotAstroDir);
 diff --git a/dist/content/loaders/glob.js b/dist/content/loaders/glob.js
-index 07c94e7fe59e2068b4cfd57da5a0aa313618515d..971300e61c65c4c2b1d7f6dd7ee63c5d05cb7bce 100644
+index 07c94e7fe59e2068b4cfd57da5a0aa313618515d..37d8d8a2b48e16cac7abbb0f5804f6c464c3661f 100644
 --- a/dist/content/loaders/glob.js
 +++ b/dist/content/loaders/glob.js
-@@ -240,7 +240,22 @@ function glob(globOptions) {
+@@ -240,7 +240,25 @@ function glob(globOptions) {
            skippedFiles.forEach((file) => logger.warn(`\u2022 ${colors.green(file)}`));
          }
        }
@@ -156,7 +161,10 @@ index 07c94e7fe59e2068b4cfd57da5a0aa313618515d..971300e61c65c4c2b1d7f6dd7ee63c5d
 +      // /about/ 等走 getEntry 的页面报 "Entry spec was not found"（500）。
 +      // 跳过这次 prune：既保留内存里的条目（当前进程继续 200），也不写空盘
 +      // （下次重启从磁盘载回的仍是完好数据）。下一次正常扫描再做对齐。
-+      if (files.length === 0 && exists && untouchedEntries.size > 0) {
++      // Patch: 仅 dev（有 watcher）才跳过。build 没有重启窗口，集合变空必然是
++      // 内容真被删除，必须如实 prune；否则磁盘残留旧条目、与重写后的
++      // content-modules.mjs 错位，渲染 feed/列表时抛 UnknownContentCollectionError。
++      if (watcher && files.length === 0 && exists && untouchedEntries.size > 0) {
 +        logger.warn(
 +          `glob loader: 跳过一次幻空扫描的 prune（collection="${collection}"，保留 ${untouchedEntries.size} 条既有条目；通常发生在 dev 全量重启窗口）`
 +        );
@@ -167,10 +175,10 @@ index 07c94e7fe59e2068b4cfd57da5a0aa313618515d..971300e61c65c4c2b1d7f6dd7ee63c5d
          return;
        }
 diff --git a/dist/content/mutable-data-store.js b/dist/content/mutable-data-store.js
-index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b4234e6b1 100644
+index 2bf22e0224dbc737b9da10bac0f49d395451d130..55d973393e9cb887bbf83d8be2c38e6f535915cb 100644
 --- a/dist/content/mutable-data-store.js
 +++ b/dist/content/mutable-data-store.js
-@@ -28,6 +28,12 @@ class MutableDataStore extends ImmutableDataStore {
+@@ -28,6 +28,16 @@ class MutableDataStore extends ImmutableDataStore {
    #modulesDirty = false;
    #assetImports = /* @__PURE__ */ new Set();
    #moduleImports = /* @__PURE__ */ new Map();
@@ -180,10 +188,14 @@ index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b
 +  // 保护——一个曾有内容的集合若在某次落盘时变空，几乎必是 dev 重启/glob 幻空
 +  // 扫描/loader 中途抛错造成的临时态，绝不能用空值覆盖磁盘上的好数据。
 +  #populatedCollections = /* @__PURE__ */ new Set();
++  // Patch: 塌缩保护开关。默认开启（dev server 需要它）；content-layer.js 在
++  // 每次 sync 完成后按「本层是否挂了 watcher」设置（build/sync 无 watcher →
++  // 关闭）——详见 setRestartGuard() 的注释。
++  #restartGuardEnabled = true;
    #writeInProgress = false;
    #writeQueued = false;
    #fileWrittenListeners = /* @__PURE__ */ new Set();
-@@ -60,6 +66,7 @@ class MutableDataStore extends ImmutableDataStore {
+@@ -60,6 +70,7 @@ class MutableDataStore extends ImmutableDataStore {
      const collection = this._collections.get(collectionName) ?? /* @__PURE__ */ new Map();
      collection.set(String(key), value);
      this._collections.set(collectionName, collection);
@@ -191,7 +203,7 @@ index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b
      this.#saveToDiskDebounced();
    }
    delete(collectionName, key) {
-@@ -78,11 +85,29 @@ class MutableDataStore extends ImmutableDataStore {
+@@ -78,11 +89,47 @@ class MutableDataStore extends ImmutableDataStore {
      this.#writeModulesImportsDebounced();
    }
    clearAll() {
@@ -207,6 +219,24 @@ index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b
      this.#writeAssetsImportsDebounced();
      this.#writeModulesImportsDebounced();
    }
++  /**
++   * Patch: 开关「塌缩保护」。
++   *
++   * 保护要解决的问题：dev server 重启窗口里，glob loader 可能对仍然存在的目录
++   * 扫出一次「幻空」结果，或 loader 被已关闭的 module runner 打断，使某个集合
++   * 在内存里瞬时变空。此时若把这份残缺数据落盘，磁盘上的好索引就被空值固化，
++   * 之后所有走 getEntry 的页面（如 /about/）都会 500。所以 dev 下宁可拒绝写。
++   *
++   * 但 build / sync 里不存在这种瞬时错位：集合变空只可能是内容真的被删掉了
++   * （或内容目录被移除），必须如实落盘。否则磁盘上会残留已删除条目的旧索引，
++   * 而 content-modules.mjs 已按真实内容重写，两者错位后渲染 feed 会抛出
++   * `UnknownContentCollectionError: Unexpected error while rendering → <旧 id>`。
++   * Vercel 等平台恢复上一次部署的构建缓存（node_modules/.astro/data-store.json）
++   * 时该错位必然出现，构建直接失败，所以这里必须按命令区分。
++   */
++  setRestartGuard(enabled) {
++    this.#restartGuardEnabled = enabled;
++  }
 +  /** Patch: 结束 clearAll() 引起的落盘挂起状态，并立即写出当前真实数据。 */
 +  resumeWrites() {
 +    if (!this.#writesSuspended) return;
@@ -221,7 +251,7 @@ index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b
    addAssetImport(assetImport, filePath) {
      const id = imageSrcToImportId(assetImport, filePath);
      if (id) {
-@@ -146,6 +171,12 @@ class MutableDataStore extends ImmutableDataStore {
+@@ -146,6 +193,16 @@ class MutableDataStore extends ImmutableDataStore {
      this.#assetsFile = filePath;
      this.#rebuildAssetImports();
      if (this.#assetImports.size === 0) {
@@ -230,11 +260,15 @@ index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b
 +      // 但本次 rebuild 撞上 _collections 瞬时为空」的情况（dev 重启窗口里
 +      // writeToDisk 有塌缩保护、data-store.json 保住了完整数据，若这里仍把
 +      // content-assets.mjs 写空，就会出现 data-store 满 / .mjs 空的错位）。
-+      if (this.#writesSuspended || this.#populatedCollections.size > 0) return;
++      if (
++        this.#writesSuspended ||
++        (this.#restartGuardEnabled && this.#populatedCollections.size > 0)
++      )
++        return;
        try {
          await this.#writeFileAtomic(filePath, "export default new Map();");
        } catch (err) {
-@@ -181,6 +212,14 @@ export default new Map([${exports.join(", ")}]);
+@@ -181,6 +238,18 @@ export default new Map([${exports.join(", ")}]);
      this.#modulesFile = filePath;
      this.#rebuildModuleImports();
      if (this.#moduleImports.size === 0) {
@@ -245,11 +279,15 @@ index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b
 +      // 于是 deferredRender 的 posts/spec 全都找不到模块。#populatedCollections
 +      // 非空即说明「本该有 deferredRender 条目」，此刻空必是临时错位，跳过写空、
 +      // 保留磁盘上的好文件（下一次带内容的 rebuild 再正常覆盖）。
-+      if (this.#writesSuspended || this.#populatedCollections.size > 0) return;
++      if (
++        this.#writesSuspended ||
++        (this.#restartGuardEnabled && this.#populatedCollections.size > 0)
++      )
++        return;
        try {
          await this.#writeFileAtomic(filePath, "export default new Map();");
        } catch (err) {
-@@ -282,14 +321,18 @@ ${lines.join(",\n")}]);
+@@ -282,14 +351,18 @@ ${lines.join(",\n")}]);
      }, SAVE_DEBOUNCE_MS);
    }
    #writing = /* @__PURE__ */ new Set();
@@ -270,7 +308,7 @@ index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b
        return;
      }
      this.#writing.add(fileKey);
-@@ -304,9 +347,11 @@ ${lines.join(",\n")}]);
+@@ -304,9 +377,11 @@ ${lines.join(",\n")}]);
        this.#notifyFileWritten(filePath);
      } finally {
        this.#writing.delete(fileKey);
@@ -284,7 +322,7 @@ index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b
        }
      }
    }
-@@ -429,9 +474,35 @@ ${lines.join(",\n")}]);
+@@ -429,9 +504,37 @@ ${lines.join(",\n")}]);
      return serializeDataStore(this._collections);
    }
    async writeToDisk() {
@@ -311,16 +349,18 @@ index 2bf22e0224dbc737b9da10bac0f49d395451d130..10d3c494e7d57b25ac1d8b6131566c5b
 +    // 得以保留——任何一次后续重启都能从磁盘载回正确内容，不再出现 /about/ 500。
 +    // 代价：若用户真的删光某个集合的全部内容，需重启 dev 才会落盘，这在本项目
 +    // （每个集合恒有文件）不会发生，取舍可接受。
-+    for (const name of this.#populatedCollections) {
-+      const collection = this._collections.get(name);
-+      if (!collection || collection.size === 0) {
-+        return;
++    if (this.#restartGuardEnabled) {
++      for (const name of this.#populatedCollections) {
++        const collection = this._collections.get(name);
++        if (!collection || collection.size === 0) {
++          return;
++        }
 +      }
 +    }
      if (!this.#writer) {
        throw new AstroError(AstroErrorData.UnknownFilesystemError);
      }
-@@ -472,6 +543,14 @@ ${lines.join(",\n")}]);
+@@ -472,6 +575,14 @@ ${lines.join(",\n")}]);
    static async fromMap(data) {
      const store = new MutableDataStore();
      store._collections = data;
