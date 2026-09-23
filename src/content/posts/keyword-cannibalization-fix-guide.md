@@ -1,17 +1,15 @@
 ---
 title: 关键词蚕食问题怎么修复？外贸独立站产品页实战诊断
 published: 2026-04-26
-updated: 2026-04-26
+updated: 2026-09-23
 description: 产品页SKU多了，多个页面抢同一个大词，Google不知该推哪个？本文用GSC诊断是否蚕食，建立关键词映射表，从Title、H1、内链锚文本、URL四个维度拉开信号区隔。
 tags: [SEO, 实战指南, 关键词蚕食, 产品页SEO]
 category: 增长与SEO
 image: ./images/keyword-cannibalization-fix-guide.jpg
 slug: keyword-cannibalization-fix-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 6
 author: MoeWah
-sourceLink: https://blog.moewah.com/posts/keyword-cannibalization-fix-guide/
-licenseName: CC BY-NC-SA 4.0
-licenseUrl: https://creativecommons.org/licenses/by-nc-sa/4.0/
 ---
 
 好几款产品页都优化了同一个大词，结果 Google 里一个都没排上去，或者排名今天这个页面上来明天换另一个。
@@ -196,3 +194,18 @@ licenseUrl: https://creativecommons.org/licenses/by-nc-sa/4.0/
 > **补充说明** ：品类页和产品页都排在结果里不一定算蚕食。如果品类页排在第 3 位、产品页排在第 7 位，两者稳定共存，通常是好事——占了两个坑位。 **只有排名互相拉扯此消彼长才需要干预** 。
 
 **一句话总结** ：大词归品类页，SKU 页各自锚定一个带修饰语的长尾词，通过 Title、H1、正文、内链锚文本和 URL 把信号拉开。关键词蚕食不可怕，可怕的是不知道它正在发生。
+
+---
+
+## 排查顺序：你的症状属于哪一类
+
+「有排名但没流量」是同一组症状，但病因有四种。如果已排除下面几种，再看本篇的蚕食修复流程：
+
+| 症状特征 | 病因 | 对应文章 |
+|---|---|---|
+| 排名稳、CTR 低、SERP 有 AI 摘要或富媒体 | SERP 特征截流 | [AI 引用优化完全指南](/posts/ai-citation-seo-complete-guide/) |
+| 标题与 SERP 主导内容类型不符 | 搜索意图错配 | [搜索意图错配诊断](/posts/search-intent-mismatch-fix/) |
+| 排名持续缓慢下滑，页面内容陈旧 | 内容老化 | [内容老化刷新策略](/posts/content-decay-refresh-strategy/) |
+| 同一词下多个 URL 交替出现 | **关键词蚕食**（你在这里） | 本篇 |
+
+**关键区分点**：蚕食的独特信号是「**排名跳舞**」——同一个词今天这个页面排上来、明天换另一个，或者多个页面都卡在第 20-40 位谁也上不去。如果你的核心词只有一个 URL 稳定获得展示，那不是蚕食。

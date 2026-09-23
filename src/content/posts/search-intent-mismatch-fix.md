@@ -1,17 +1,15 @@
 ---
 title: 搜索意图错配：为什么你的关键词有排名却没流量
 published: 2026-03-05
-updated: 2026-03-05
+updated: 2026-09-23
 description: 关键词有排名却没流量？可能是搜索意图错配。本文详解四种搜索意图类型、SERP 分析判断意图的方法、内容与意图匹配策略，以及错配后的三个修复方向。
 tags: [SEO优化, 搜索意图, SERP分析, 内容策略]
 category: 增长与SEO
 image: ./images/search-intent-mismatch-fix.jpg
 slug: search-intent-mismatch-fix
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 4
 author: MoeWah
-sourceLink: https://blog.moewah.com/posts/search-intent-mismatch-fix/
-licenseName: CC BY-NC-SA 4.0
-licenseUrl: https://creativecommons.org/licenses/by-nc-sa/4.0/
 ---
 
 我见过太多这样的案例：一个关键词好不容易冲进前十，搜索量也不错，但点击率惨淡，跳出率居高不下。后来才意识到， **问题不在关键词本身，而是搜索意图错配** 。
@@ -232,3 +230,18 @@ Ahrefs 的 backlink checker 落地页一开始排名很差。原因很简单：�
 - Ahrefs：[Search Intent in SEO: What It Is & How to Optimize for It](https://ahrefs.com/blog/search-intent/)
 - Search Engine Journal：[Mastering SERP Analysis: A Step-By-Step Guide](https://www.searchenginejournal.com/mastering-serp-analysis-guide-to-understanding-search-engine-results-pages/536469/)
 - SE Ranking：[The 6 Types of Search Intent](https://seranking.com/blog/search-intent/)
+
+---
+
+## 排查顺序：你的症状属于哪一类
+
+「有排名但没流量」是同一组症状，但病因有四种。按下面的顺序排查，能少走弯路：
+
+| 症状特征 | 病因 | 对应文章 |
+|---|---|---|
+| 排名稳、CTR 低、SERP 有 AI 摘要或富媒体 | SERP 特征截流 | [AI 引用优化完全指南](/posts/ai-citation-seo-complete-guide/) |
+| 标题与 SERP 主导内容类型不符（该出清单却写了教程） | **搜索意图错配**（你在这里） | 本篇 |
+| 排名持续缓慢下滑，页面内容陈旧 | 内容老化 | [内容老化刷新策略](/posts/content-decay-refresh-strategy/) |
+| 同一词下多个 URL 交替出现、互相拉扯 | 关键词蚕食 | [关键词蚕食修复指南](/posts/keyword-cannibalization-fix-guide/) |
+
+如果 GSC 里同一个关键词下面挂着好几个 URL，先看关键词蚕食那篇；如果排名稳定但点击率持续走低，先确认是不是零点击问题。

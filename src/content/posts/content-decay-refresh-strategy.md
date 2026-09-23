@@ -1,17 +1,15 @@
 ---
 title: 网站「内容老化」这件事，你可能一直没认真对待
 published: 2026-03-31
-updated: 2026-03-31
+updated: 2026-09-23
 description: 老文章才是流量底盘，76% 的流量来自历史内容。本文教你如何用 GSC 诊断内容老化、判断哪些文章值得更新、刷新老内容的具体方法，以及更新 vs 新写的取舍策略。
 tags: [SEO优化, 内容老化, 内容更新, 流量增长]
 category: 增长与SEO
 image: ./images/content-decay-refresh-strategy.jpg
 slug: content-decay-refresh-strategy
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 5
 author: MoeWah
-sourceLink: https://blog.moewah.com/posts/content-decay-refresh-strategy/
-licenseName: CC BY-NC-SA 4.0
-licenseUrl: https://creativecommons.org/licenses/by-nc-sa/4.0/
 ---
 
 上周有个做独立站的朋友找我，说流量莫名其妙掉了 30%，但查了一圈也没发现什么技术问题。
@@ -191,3 +189,18 @@ Google 需要时间重新抓取和评估。刷新后第一天看排名没变化�
 - HubSpot：[The Blogging Tactic No One Is Talking About: Optimizing the Past](https://blog.hubspot.com/marketing/historical-blog-seo-conversion-optimization)
 - Search Engine Journal：[How To Uncover Traffic Declines In Google Search Console](https://www.searchenginejournal.com/how-to-uncover-traffic-declines-in-google-search-console-and-how-to-fix-them/516668/)
 - thekingofsearch：[Content Decay Solved - A Framework For Refreshing Content](https://aiandsearchnews.com/content-decay-solved-a-framework-for-refreshing-old-seo-content/)
+
+---
+
+## 排查顺序：你的症状属于哪一类
+
+「有排名但没流量」是同一组症状，但病因有四种。如果已排除下面几种，再往下看本篇的刷新流程：
+
+| 症状特征 | 病因 | 对应文章 |
+|---|---|---|
+| 排名稳、CTR 低、SERP 有 AI 摘要或富媒体 | SERP 特征截流 | [AI 引用优化完全指南](/posts/ai-citation-seo-complete-guide/) |
+| 标题与 SERP 主导内容类型不符 | 搜索意图错配 | [搜索意图错配诊断](/posts/search-intent-mismatch-fix/) |
+| 排名持续缓慢下滑，页面内容陈旧 | **内容老化**（你在这里） | 本篇 |
+| 同一词下多个 URL 交替出现 | 关键词蚕食 | [关键词蚕食修复指南](/posts/keyword-cannibalization-fix-guide/) |
+
+**关键区分点**：内容老化的特征是**渐进式下滑**，而不是某天突然掉一大截。如果你的流量是断崖式下跌，先排查技术问题或算法更新，不是内容老化。
