@@ -8,6 +8,7 @@ category: 增长与SEO
 image: ./images/resource-page-link-building-guide.jpg
 slug: resource-page-link-building-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 11
 author: MoeWah
 sourceLink: https://blog.moewah.com/posts/resource-page-link-building-guide/
 licenseName: CC BY-NC-SA 4.0

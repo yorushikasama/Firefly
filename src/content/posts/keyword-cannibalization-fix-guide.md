@@ -8,8 +8,8 @@ category: 增长与SEO
 image: ./images/keyword-cannibalization-fix-guide.jpg
 slug: keyword-cannibalization-fix-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
-seriesOrder: 6
-author: MoeWah
+seriesOrder: 5
+author: 楪祈
 ---
 
 好几款产品页都优化了同一个大词，结果 Google 里一个都没排上去，或者排名今天这个页面上来明天换另一个。

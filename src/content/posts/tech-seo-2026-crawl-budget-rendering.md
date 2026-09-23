@@ -8,8 +8,8 @@ category: 增长与SEO
 image: ./images/tech-seo-2026-crawl-budget-rendering.jpg
 slug: tech-seo-2026-crawl-budget-rendering
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
-seriesOrder: 3
-author: MoeWah
+seriesOrder: 6
+author: 楪祈
 ---
 
 人人都知道修那些显眼的技术问题：死链、缺 meta 标签、页面速度慢。但技术 SEO 的真正难点不在那些地方。

@@ -8,6 +8,7 @@ category: 增长与SEO
 image: ./images/duplicate-content-canonical-mistakes.jpg
 slug: duplicate-content-canonical-mistakes
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 9
 author: MoeWah
 sourceLink: https://blog.moewah.com/posts/duplicate-content-canonical-mistakes/
 licenseName: CC BY-NC-SA 4.0

@@ -8,8 +8,8 @@ category: 增长与SEO
 image: ./images/seo-2026-complete-playbook.jpg
 slug: seo-2026-complete-playbook
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
-seriesOrder: 2
-author: MoeWah
+seriesOrder: 1
+author: 楪祈
 ---
 
 AI 正在改写搜索结果，Google 的算法更新一次比一次快。几年前还管用的套路——堆关键词、批量生产内容、疯狂买外链——现在基本失效。

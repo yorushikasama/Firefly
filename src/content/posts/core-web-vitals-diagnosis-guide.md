@@ -8,6 +8,7 @@ category: 增长与SEO
 image: ./images/core-web-vitals-diagnosis-guide.jpg
 slug: core-web-vitals-diagnosis-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 7
 author: MoeWah
 sourceLink: https://blog.moewah.com/posts/core-web-vitals-diagnosis-guide/
 licenseName: CC BY-NC-SA 4.0

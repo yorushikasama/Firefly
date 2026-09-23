@@ -8,6 +8,7 @@ category: 增长与SEO
 image: ./images/small-site-vs-big-platform-seo-2026.jpg
 slug: small-site-vs-big-platform-seo-2026
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 15
 author: MoeWah
 sourceLink: https://blog.moewah.com/posts/small-site-vs-big-platform-seo-2026/
 licenseName: CC BY-NC-SA 4.0

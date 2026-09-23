@@ -8,8 +8,8 @@ category: 增长与SEO
 image: ./images/content-decay-refresh-strategy.jpg
 slug: content-decay-refresh-strategy
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
-seriesOrder: 5
-author: MoeWah
+seriesOrder: 4
+author: 楪祈
 ---
 
 上周有个做独立站的朋友找我，说流量莫名其妙掉了 30%，但查了一圈也没发现什么技术问题。

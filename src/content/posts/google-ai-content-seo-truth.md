@@ -8,6 +8,7 @@ category: 增长与SEO
 image: ./images/google-ai-content-seo-truth.jpg
 slug: google-ai-content-seo-truth
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 13
 author: MoeWah
 sourceLink: https://blog.moewah.com/posts/google-ai-content-seo-truth/
 licenseName: CC BY-NC-SA 4.0

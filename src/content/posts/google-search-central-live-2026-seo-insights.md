@@ -8,6 +8,7 @@ category: 增长与SEO
 image: ./images/google-search-central-live-2026-seo-insights.jpg
 slug: google-search-central-live-2026-seo-insights
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 14
 author: MoeWah
 sourceLink: https://blog.moewah.com/posts/google-search-central-live-2026-seo-insights/
 licenseName: CC BY-NC-SA 4.0

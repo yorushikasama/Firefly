@@ -8,8 +8,8 @@ category: 增长与SEO
 image: ./images/ai-citation-seo-complete-guide.jpg
 slug: ai-citation-seo-complete-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
-seriesOrder: 1
-author: MoeWah
+seriesOrder: 2
+author: 楪祈
 pinned: false
 ---
 

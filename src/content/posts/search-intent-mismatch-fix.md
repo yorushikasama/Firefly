@@ -8,8 +8,8 @@ category: 增长与SEO
 image: ./images/search-intent-mismatch-fix.jpg
 slug: search-intent-mismatch-fix
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
-seriesOrder: 4
-author: MoeWah
+seriesOrder: 3
+author: 楪祈
 ---
 
 我见过太多这样的案例：一个关键词好不容易冲进前十，搜索量也不错，但点击率惨淡，跳出率居高不下。后来才意识到， **问题不在关键词本身，而是搜索意图错配** 。

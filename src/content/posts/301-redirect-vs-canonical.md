@@ -8,6 +8,7 @@ category: 增长与SEO
 image: ./images/301-redirect-vs-canonical.avif
 slug: 301-redirect-vs-canonical
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 8
 author: MoeWah
 sourceLink: https://blog.moewah.com/posts/708/
 licenseName: CC BY-NC-SA 4.0

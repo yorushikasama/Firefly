@@ -8,6 +8,7 @@ category: 增长与SEO
 image: ./images/seo-domain-migration.jpg
 slug: seo-domain-migration-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 10
 author: MoeWah
 sourceLink: https://blog.moewah.com/posts/seo-domain-migration-guide/
 licenseName: CC BY-NC-SA 4.0

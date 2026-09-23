@@ -8,6 +8,7 @@ category: 增长与SEO
 image: ./images/entity-seo-guide.jpg
 slug: entity-seo-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
+seriesOrder: 12
 author: MoeWah
 sourceLink: https://blog.moewah.com/posts/entity-seo-guide/
 licenseName: CC BY-NC-SA 4.0
