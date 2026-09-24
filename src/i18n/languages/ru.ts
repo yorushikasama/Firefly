@@ -132,6 +132,8 @@ export const ru: Translation = {
 	[Key.updatedAt]: "Обновлено",
 	[Key.readTime]: "Время чтения",
 	[Key.license]: "Лицензия",
+	[Key.viewOriginal]: "Читать оригинал",
+	[Key.postPermalink]: "Ссылка на статью",
 	[Key.bangumi]: "Bangumi",
 
 	// Фильтр и статус Бангуми текст

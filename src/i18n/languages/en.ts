@@ -132,6 +132,8 @@ export const en: Translation = {
 	[Key.updatedAt]: "Updated at",
 	[Key.readTime]: "Read time",
 	[Key.license]: "License",
+	[Key.viewOriginal]: "Read original",
+	[Key.postPermalink]: "Permalink",
 	[Key.bangumi]: "Bangumi",
 
 	// Bangumi Filter and Status Text

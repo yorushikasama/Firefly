@@ -5,7 +5,7 @@ updated: 2026-09-23
 description: AI 改写搜索结果，旧套路全面失效。本文整合入门必备的 5 个技巧、值得深挖的 13 个 SEO 术语、以及浪费时间的概念清单，给出从基础动作到收益导向（Money Hat）的完整认知地图与落地清单。
 tags: [SEO优化, 入门指南, AI搜索, 搜索意图, 实战总结]
 category: 增长与SEO
-image: ./images/seo-2026-complete-playbook.jpg
+image: ./images/seo-2026-complete-playbook.avif
 slug: seo-2026-complete-playbook
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 1

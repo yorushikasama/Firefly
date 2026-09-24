@@ -119,11 +119,6 @@ export const backgroundWallpaper: BackgroundWallpaperConfig = {
 					url: "mailto:inori@example.com",
 				},
 				{
-					name: "Sponsor",
-					icon: "material-symbols:favorite",
-					url: "/sponsor/",
-				},
-				{
 					name: "RSS",
 					icon: "fa7-solid:rss",
 					url: "/rss/",

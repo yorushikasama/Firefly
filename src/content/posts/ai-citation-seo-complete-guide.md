@@ -5,7 +5,7 @@ updated: 2026-09-23
 description: 排名没掉流量却没了？AI Overviews 让首位页面点击率下降 58%，58.5% 的搜索以零点击结束。本文整合零点击诊断、CITABLE 引用框架、E-E-A-T 信号修复与 7 个 GEO 实操技巧，给出从诊断到落地的完整路径。
 tags: [SEO优化, AI引用, GEO优化, E-E-A-T, 零点击搜索]
 category: 增长与SEO
-image: ./images/ai-citation-seo-complete-guide.jpg
+image: ./images/ai-citation-seo-complete-guide.avif
 slug: ai-citation-seo-complete-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 2

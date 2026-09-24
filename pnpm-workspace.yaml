@@ -5,5 +5,6 @@ allowBuilds:
   workerd: true
 patchedDependencies:
   astro@7.3.3: patches/astro@7.3.3.patch
+  l2d-widget@0.1.2: patches/l2d-widget@0.1.2.patch
   rolldown@1.2.7: patches/rolldown@1.2.7.patch
   vite@8.2.2: patches/vite@8.2.2.patch

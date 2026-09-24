@@ -131,6 +131,8 @@ export const ja: Translation = {
 	[Key.updatedAt]: "更新日",
 	[Key.readTime]: "読了時間",
 	[Key.license]: "ライセンス",
+	[Key.viewOriginal]: "元記事を読む",
+	[Key.postPermalink]: "この記事のリンク",
 	[Key.bangumi]: "Bangumi",
 
 	// バングミフィルターと状態文本

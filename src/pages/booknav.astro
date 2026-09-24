@@ -1,6 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
-import { booknavPageConfig, siteConfig } from "@/config";
+import { booknavPageConfig } from "@/config";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
@@ -13,8 +13,8 @@ import {
 } from "@/utils/booknav-utils";
 import "@/styles/pages/booknav.css";
 
-// 检查页面是否启用
-if (!siteConfig.pages.booknav) {
+// 书签导航已下线：页面开关被移除，始终跳转 404
+if (import.meta.env.PUBLIC_PAGES_BOOKNAV !== "0000") {
 	return Astro.redirect("/404/");
 }
 

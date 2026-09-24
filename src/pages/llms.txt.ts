@@ -52,12 +52,6 @@ const KEY_PAGES: KeyPage[] = [
 		pageKey: "gallery",
 	},
 	{
-		labelKey: I18nKey.booknav,
-		path: "/booknav/",
-		descKey: I18nKey.booknavDescription,
-		pageKey: "booknav",
-	},
-	{
 		labelKey: I18nKey.bilibili,
 		path: "/bilibili/",
 		descKey: I18nKey.bilibiliSubtitle,
@@ -80,12 +74,6 @@ const KEY_PAGES: KeyPage[] = [
 		path: "/myanimelist/",
 		descKey: I18nKey.malSubtitle,
 		pageKey: "mal",
-	},
-	{
-		labelKey: I18nKey.sponsor,
-		path: "/sponsor/",
-		descKey: I18nKey.sponsorDescription,
-		pageKey: "sponsor",
 	},
 ];
 

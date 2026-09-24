@@ -5,7 +5,7 @@ updated: 2026-03-12
 description: 29% 的网站存在重复内容问题。本文详解 canonical 标签的五个误用场景、参数 URL 处理方案、GSC 诊断方法，以及如何让 canonical、内链、sitemap 三者保持一致。
 tags: [SEO优化, canonical, 重复内容, 技术SEO]
 category: 增长与SEO
-image: ./images/duplicate-content-canonical-mistakes.jpg
+image: ./images/duplicate-content-canonical-mistakes.avif
 slug: duplicate-content-canonical-mistakes
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 9

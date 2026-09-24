@@ -129,6 +129,8 @@ export const zh_TW: Translation = {
 	[Key.updatedAt]: "更新於",
 	[Key.readTime]: "閱讀時長",
 	[Key.license]: "許可協議",
+	[Key.viewOriginal]: "閱讀原文",
+	[Key.postPermalink]: "本文連結",
 	[Key.bangumi]: "番組計劃",
 
 	// 番組計劃

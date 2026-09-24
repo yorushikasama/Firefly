@@ -129,6 +129,8 @@ export const zh_CN: Translation = {
 	[Key.updatedAt]: "更新于",
 	[Key.readTime]: "阅读时长",
 	[Key.license]: "许可协议",
+	[Key.viewOriginal]: "阅读原文",
+	[Key.postPermalink]: "本文链接",
 	[Key.bangumi]: "番组计划",
 
 	// 番组计划筛选和状态文本

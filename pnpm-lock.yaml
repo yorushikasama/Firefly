@@ -6,6 +6,7 @@ settings:
 
 patchedDependencies:
   astro@7.3.3: a72730ed794847e453addb86f64114747de198a400527cff3081e65b5b06a319
+  l2d-widget@0.1.2: 0d896e457248d3cf74887361da63d7f554714d8edbb8d7bd791938ab41071e6d
   rolldown@1.2.7: aa2c24e735e375962b87e58361659ea885b783d52310ded3c2d45986a447707e
   vite@8.2.2: 179c08e7ac6d710e2f88b8fb1fb153b0d4fa5ee1cd916c3aa09a0acb6ff6e411
 
@@ -138,7 +139,7 @@ importers:
         version: 0.18.7
       l2d-widget:
         specifier: ^0.1.1
-        version: 0.1.2
+        version: 0.1.2(patch_hash=0d896e457248d3cf74887361da63d7f554714d8edbb8d7bd791938ab41071e6d)
       marked:
         specifier: ^18.0.12
         version: 18.0.12
@@ -10527,7 +10528,7 @@ snapshots:
 
   klona@2.0.6: {}
 
-  l2d-widget@0.1.2: {}
+  l2d-widget@0.1.2(patch_hash=0d896e457248d3cf74887361da63d7f554714d8edbb8d7bd791938ab41071e6d): {}
 
   launder@1.7.1:
     dependencies:

@@ -5,7 +5,7 @@ updated: 2026-04-27
 description: 独立博客面对大平台搬运和流量分流，并非只能被动挨打。从爬虫预算红利、关键词内部竞争、E-E-A-T经验信号三个维度，小站反而拥有大平台无法复制的优势。本文拆解底层逻辑并提供四条实操建议。
 tags: [SEO优化, 实战复盘, E-E-A-T, 爬虫预算, 关键词蚕食]
 category: 增长与SEO
-image: ./images/small-site-vs-big-platform-seo-2026.jpg
+image: ./images/small-site-vs-big-platform-seo-2026.avif
 slug: small-site-vs-big-platform-seo-2026
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 15

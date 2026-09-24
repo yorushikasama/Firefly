@@ -5,7 +5,7 @@ updated: 2026-09-23
 description: 收录率从85%跌到42%，问题在哪？40%爬虫预算浪费在参数URL和死链上，CSR渲染让内容晚到3-10秒错过AI引用窗口。本文详解 Google 爬虫预算四大杀手、渲染预算新门槛、僵尸页面清理、孤儿页面诊断、Pillar-Cluster 内链架构、Canonical陷阱、EEAT信号——完整实操检查清单。
 tags: [SEO优化, 爬虫预算, 渲染预算, 内链架构, EEAT]
 category: 增长与SEO
-image: ./images/tech-seo-2026-crawl-budget-rendering.jpg
+image: ./images/tech-seo-2026-crawl-budget-rendering.avif
 slug: tech-seo-2026-crawl-budget-rendering
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 6

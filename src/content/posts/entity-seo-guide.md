@@ -5,7 +5,7 @@ updated: 2026-08-05
 description: 实体 SEO 是语义 SEO 的子集，核心是让 Google 和 Bing 把品牌识别为确定的主体。本文拆解三层结构：机器如何构建实体、怎么写才能被提取、如何让全网替你佐证，并附 15 分钟机器识别审计方法，助你从声明走向事实。
 tags: [SEO优化, 实战指南, 实体SEO, 语义SEO, 知识图谱]
 category: 增长与SEO
-image: ./images/entity-seo-guide.jpg
+image: ./images/entity-seo-guide.avif
 slug: entity-seo-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 12

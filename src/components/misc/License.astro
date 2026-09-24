@@ -54,8 +54,13 @@ const licenseIcon = licenseName
   <div class="transition font-bold text-black/75 dark:text-white/75">
     {title}
   </div>
-  <a href={postUrl} class="link text-(--primary) break-all">
-    {postUrl}
+  <a
+    href={postUrl}
+    target={sourceLink ? "_blank" : undefined}
+    class="link text-(--primary) inline-flex items-center gap-1"
+  >
+    {sourceLink ? i18n(I18nKey.viewOriginal) : i18n(I18nKey.postPermalink)}
+    <Icon name="fa7-solid:arrow-up-right-from-square" class="text-xs" />
   </a>
   <div class="flex flex-col sm:flex-row gap-3 sm:gap-6 mt-2">
     <div>

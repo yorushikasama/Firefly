@@ -85,7 +85,7 @@ export const spineModelConfig: SpineModelConfig = {
 // Live2D 看板娘配置 (使用 l2d-widget 库，文档：https://l2d-widget.hacxy.cn)
 export const live2dWidgetConfig: Live2DWidgetConfig = {
 	// Live2D 看板娘开关
-	enable: false,
+	enable: true,
 	// 模型配置，支持单个模型或数组（多模型切换）
 	model: [
 		{
@@ -144,6 +144,11 @@ export const live2dWidgetConfig: Live2DWidgetConfig = {
 				action: "switchModel",
 			},
 			{
+				icon: "mdi:restore",
+				label: "重置位置",
+				action: "resetPosition",
+			},
+			{
 				icon: "mdi:github",
 				label: "GitHub",
 				action: "github",
@@ -181,5 +186,14 @@ export const live2dWidgetConfig: Live2DWidgetConfig = {
 		hideOnMobile: true,
 		// 移动端断点
 		mobileBreakpoint: 768,
+	},
+	// 拖动配置
+	draggable: {
+		// 是否允许拖动看板娘
+		enable: true,
+		// 长按多久（ms）后才进入拖动，太短会抢走单击换动作
+		longPressMs: 150,
+		// 是否记忆位置（刷新、切页后仍停在原处）
+		savePosition: true,
 	},
 };

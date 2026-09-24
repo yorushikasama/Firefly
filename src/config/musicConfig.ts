@@ -18,7 +18,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	playMode: "list",
 
 	// 是否显启用歌词
-	showLyrics: false,
+	showLyrics: true,
 
 	// Meting API 配置
 	meting: {
@@ -48,11 +48,25 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	local: {
 		playlist: [
 			{
-				name: "使一颗心免于哀伤",
-				artist: "知更鸟 / HOYO-MiX / Chevy",
-				url: "/assets/music/使一颗心免于哀伤-哼唱.mp3",
-				cover: "/assets/music/cover/109951169585655912.webp",
-				lrc: "",
+				name: "My Dearest",
+				artist: "supercell",
+				url: "/assets/music/My Dearest-supercell.mp3",
+				cover: "/assets/music/cover/My Dearest-supercell.jpg",
+				lrc: "/assets/music/lrc/My Dearest-supercell.lrc",
+			},
+			{
+				name: "Departures 〜あなたにおくるアイの歌〜",
+				artist: "EGOIST",
+				url: "/assets/music/Departures 〜あなたにおくるアイの歌〜-EGOIST.mp3",
+				cover: "/assets/music/cover/Departures 〜あなたにおくるアイの歌〜-EGOIST.jpg",
+				lrc: "/assets/music/lrc/Departures 〜あなたにおくるアイの歌〜-EGOIST.lrc",
+			},
+			{
+				name: "Release My Soul",
+				artist: "澤野弘之",
+				url: "/assets/music/Release My Soul-澤野弘之.mp3",
+				cover: "/assets/music/cover/Release My Soul-澤野弘之.jpg",
+				lrc: "/assets/music/lrc/Release My Soul-澤野弘之.lrc",
 			},
 		],
 	},

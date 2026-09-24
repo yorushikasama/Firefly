@@ -5,7 +5,7 @@ updated: 2026-03-25
 description: 看到Search Console飘红就慌？43%网站INP未达标，但不等于降权。本文分三种站点类型（WordPress、静态站、自建），详解LCP、INP、CLS达标标准与针对性优化方案。
 tags: [SEO优化, 性能优化, 用户体验]
 category: 增长与SEO
-image: ./images/core-web-vitals-diagnosis-guide.jpg
+image: ./images/core-web-vitals-diagnosis-guide.avif
 slug: core-web-vitals-diagnosis-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 7

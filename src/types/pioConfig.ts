@@ -72,4 +72,9 @@ export type Live2DWidgetConfig = {
 		hideOnMobile?: boolean; // 是否在移动端隐藏
 		mobileBreakpoint?: number; // 移动端断点，默认 768
 	};
+	draggable?: {
+		enable?: boolean; // 是否允许拖动看板娘，默认 true
+		longPressMs?: number; // 长按多久后才进入拖动，默认 150（避免抢走单击换动作）
+		savePosition?: boolean; // 是否用 localStorage 记忆位置，默认 true
+	};
 };

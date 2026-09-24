@@ -54,6 +54,11 @@ interface Props {
 			hideOnMobile?: boolean;
 			mobileBreakpoint?: number;
 		};
+		draggable?: {
+			enable?: boolean;
+			longPressMs?: number;
+			savePosition?: boolean;
+		};
 	};
 }
 
@@ -101,6 +106,7 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 	data-menus={JSON.stringify(serializeMenus(config.menus))}
 	data-tips={JSON.stringify(config.tips || {})}
 	data-responsive={JSON.stringify(config.responsive || {})}
+	data-draggable={JSON.stringify(config.draggable || {})}
 	data-github-url={profileGithubUrl}
 >
 </div>
@@ -108,26 +114,8 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 <script>
 	import { createWidget } from "l2d-widget";
 
-	// 修复 l2d-widget 气泡 不会自动换行
-	// l2d-widget 使用行内样式，CSS 无法覆盖，需用 JS 修改
-	function patchTipBubble(el: HTMLElement) {
-		if (el.style.whiteSpace === "nowrap") {
-			el.style.whiteSpace = "normal";
-			el.style.width = "190px";
-		}
-	}
-
-	const tipObserver = new MutationObserver((mutations) => {
-		for (const m of mutations) {
-			for (const node of m.addedNodes) {
-				if (node instanceof HTMLElement) {
-					if (node.style.whiteSpace === "nowrap") patchTipBubble(node);
-					node.querySelectorAll<HTMLElement>('*').forEach(patchTipBubble);
-				}
-			}
-		}
-	});
-	tipObserver.observe(document.body, { childList: true, subtree: true });
+	// 已创建的 widget 实例，供重复初始化前销毁（HMR / 组件重建）
+	let widgetInstance: { destroy: () => Promise<void> } | null = null;
 
 	// 菜单动作映射
 	let currentModelIndex = 0;
@@ -144,14 +132,34 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 		switchModel: (widget) => {
 			const container = document.getElementById("l2d-widget-container");
 			const models = JSON.parse(container?.dataset.models || "[]");
+			if (!Array.isArray(models) || models.length === 0) return;
 			currentModelIndex = (currentModelIndex + 1) % models.length;
 			widget.switchModel(currentModelIndex);
+		},
+		resetPosition: () => {
+			const container = document.getElementById("l2d-widget-container");
+			const draggable = JSON.parse(container?.dataset.draggable || "{}");
+			resetWidgetPosition(draggable.savePosition !== false);
 		},
 	};
 
 	function initWidget() {
 		const container = document.getElementById("l2d-widget-container");
 		if (!container) return;
+
+		// 重复初始化前先释放上一个实例：destroy 会释放 WebGL 上下文并移除自己
+		// 创建的 canvas / 菜单 / 气泡 DOM。不这样做时，HMR 或组件重建会不断新建
+		// 上下文而不回收，触达浏览器上限（通常 16 个）后最老的上下文被丢弃，
+		// 表现为模型突然消失。
+		if (widgetInstance) {
+			// 先摘掉自己注册的拖动监听：widget 的 destroy() 只清理它自己的
+			// document 监听，不知道我们挂在容器上的这四个。
+			dragDetach?.();
+			dragDetach = null;
+			dragContainer = null;
+			widgetInstance.destroy().catch(() => {});
+			widgetInstance = null;
+		}
 
 		try {
 			const models = JSON.parse(container.dataset.models || "[]");
@@ -221,6 +229,10 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 					...(tips.interval !== undefined && { interval: tips.interval }),
 					...(tips.offset && { offset: tips.offset }),
 					...(tips.typing && { typing: tips.typing }),
+					// l2d-widget 的气泡默认 whiteSpace:'nowrap'，会盖掉自带的
+					// wordBreak:'break-word'，长文案横向溢出而不换行。style 选项在默认值
+					// 之后合并，可以直接声明式覆盖，无需再靠 MutationObserver 改写行内样式。
+					style: { whiteSpace: "normal" },
 				};
 				
 				if (tipsConfig === false || Object.keys(tipsConfig).length > 0) {
@@ -232,7 +244,8 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 				}
 			}
 
-			createWidget(options);
+			widgetInstance = createWidget(options);
+			setupDrag(widgetInstance);
 		} catch (e) {
 			console.error("Failed to initialize Live2D widget:", e);
 		}
@@ -261,5 +274,302 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 		}
 	}
 
+	// ---- 拖动支持 ----
+	//
+	// 两个必须绕开的 l2d-widget 内部机制（读 dist/index.js 得知）：
+	// 1. slide 模式下 widget 用 container.style.transform 做显隐动画
+	//    （translateY(0)/translateY(130%)，带 1500ms 过渡）。所以拖动只能改
+	//    left/top，绝不能用 transform，否则每次 sleep/切换模型都会被覆盖。
+	// 2. widget 在容器上挂了一次性冒泡 transitionend 监听（switchModel 和
+	//    destroy 都 await 它）。拖动期间必须把 transition 置为 none，否则拖动
+	//    自己产生的过渡事件会冒泡上去、让退出动画提前放行。
+	//
+	// 另外三个部件是 body 下的兄弟节点而非嵌套：容器与 canvas、状态条各自由
+	// widget 直接挂到 body，菜单挂在容器内部。因此菜单会跟着走，状态条不会，
+	// 需要在拖动后手动同步状态条位置。
+
+	const POSITION_STORAGE_KEY = "live2dPosition";
+	const DRAG_CLASS = "l2d-dragging";
+
+	let dragContainer: HTMLElement | null = null;
+	let dragDetach: (() => void) | null = null;
+
+	function readSavedPosition(): { left: number; top: number } | null {
+		try {
+			const raw = localStorage.getItem(POSITION_STORAGE_KEY);
+			if (!raw) return null;
+			const parsed = JSON.parse(raw);
+			if (typeof parsed?.left !== "number" || typeof parsed?.top !== "number") {
+				return null;
+			}
+			return { left: parsed.left, top: parsed.top };
+		} catch {
+			// localStorage 不可用或内容损坏时静默回退到默认位置
+			return null;
+		}
+	}
+
+	function savePosition(left: number, top: number): void {
+		try {
+			localStorage.setItem(
+				POSITION_STORAGE_KEY,
+				JSON.stringify({ left, top }),
+			);
+		} catch {
+			// 静默忽略：位置记忆是增强功能，失败不应影响看板娘
+		}
+	}
+
+	function clearSavedPosition(): void {
+		try {
+			localStorage.removeItem(POSITION_STORAGE_KEY);
+		} catch {
+			/* 同上 */
+		}
+	}
+
+	/** 把 left/top 钳制在视口内，避免窗口缩小后模型跑到屏幕外找不回来。 */
+	function clampPosition(
+		container: HTMLElement,
+		left: number,
+		top: number,
+	): { left: number; top: number } {
+		const rect = container.getBoundingClientRect();
+		const maxLeft = Math.max(0, window.innerWidth - rect.width);
+		const maxTop = Math.max(0, window.innerHeight - rect.height);
+		return {
+			left: Math.min(Math.max(0, left), maxLeft),
+			top: Math.min(Math.max(0, top), maxTop),
+		};
+	}
+
+	/**
+	 * 从 widget 实例拿到它自己创建的容器。
+	 * createWidget 把容器直接挂在 body 上且没有 id/class，但 canvas 是公开可达的
+	 * （widget.l2d.getCanvas()），其父节点就是容器。
+	 * 兜底：若该访问链在压缩产物中不可用，则按「body 下同时含 canvas 与菜单、
+	 * 且 z-index 为 9999 的 fixed 容器」在 DOM 里找。
+	 */
+	function resolveWidgetContainer(widget: {
+		l2d?: { getCanvas?: () => HTMLCanvasElement | null };
+	}): HTMLElement | null {
+		const canvas = widget?.l2d?.getCanvas?.();
+		const direct = (canvas?.parentElement as HTMLElement) ?? null;
+		if (direct) return direct;
+
+		// 兜底：widget 容器是唯一同时含 canvas 且 z-index 9999 的 body 直系 div
+		for (const el of document.querySelectorAll<HTMLElement>("body > div")) {
+			if (el.style.zIndex !== "9999") continue;
+			if (!el.querySelector("canvas")) continue;
+			return el;
+		}
+		return null;
+	}
+
+	/** 状态条是容器的兄弟节点，独立定位在 left/bottom，需要跟着模型走。 */
+	function syncStatusBarPosition(container: HTMLElement): void {
+		const rect = container.getBoundingClientRect();
+		for (const el of document.querySelectorAll<HTMLElement>("body > div")) {
+			if (el === container) continue;
+			if (el.style.position !== "fixed") continue;
+			if (!/正在加载|正在休息|切换中/.test(el.textContent || "")) continue;
+			// 状态条原本用 bottom: 容器高/2 贴在容器垂直中点
+			el.style.left = `${rect.left}px`;
+			el.style.right = "auto";
+			el.style.bottom = `${window.innerHeight - (rect.top + rect.height / 2)}px`;
+		}
+	}
+
+	/** 把容器的 right/bottom 定位换算成显式 left/top，之后拖动只改这两个值。 */
+	function pinToLeftTop(container: HTMLElement): { left: number; top: number } {
+		const rect = container.getBoundingClientRect();
+		container.style.left = `${rect.left}px`;
+		container.style.top = `${rect.top}px`;
+		container.style.right = "auto";
+		container.style.bottom = "auto";
+		return { left: rect.left, top: rect.top };
+	}
+
+	function applyPosition(container: HTMLElement, left: number, top: number): void {
+		const next = clampPosition(container, left, top);
+		container.style.left = `${next.left}px`;
+		container.style.top = `${next.top}px`;
+	}
+
+	function resetWidgetPosition(alsoClearStorage: boolean): void {
+		const container = dragContainer;
+		if (!container) return;
+		container.style.left = "";
+		container.style.top = "";
+		container.style.right = "";
+		container.style.bottom = "";
+		if (alsoClearStorage) clearSavedPosition();
+		// 回到配置的默认角落后重新读取，交给 widget 自己的 right/bottom 定位
+		window.requestAnimationFrame(() => {
+			if (!container.isConnected) return;
+			pinToLeftTop(container);
+			syncStatusBarPosition(container);
+		});
+	}
+
+	function setupDrag(widget: unknown): void {
+		const container = resolveWidgetContainer(
+			widget as { l2d?: { getCanvas?: () => HTMLCanvasElement | null } },
+		);
+		if (!container) return;
+
+		const host = document.getElementById("l2d-widget-container");
+		const draggable = JSON.parse(host?.dataset.draggable || "{}");
+		if (draggable.enable === false) return;
+
+		// 换实例前先摘掉旧监听，避免 HMR / 重建后重复绑定
+		dragDetach?.();
+		dragContainer = container;
+
+		const longPressMs =
+			typeof draggable.longPressMs === "number" ? draggable.longPressMs : 150;
+
+		// 恢复上次位置；没有记录就沿用 widget 自己的角落定位
+		const saved = draggable.savePosition !== false ? readSavedPosition() : null;
+		if (saved) {
+			const restore = () => {
+				if (!container.isConnected) return;
+				// 必须显式清掉 widget 自己的 bottom/right，否则 bottom:0 会与 top 同时生效
+				container.style.bottom = "auto";
+				container.style.right = "auto";
+				applyPosition(container, saved.left, saved.top);
+				syncStatusBarPosition(container);
+			};
+			restore();
+			// widget 入场动画/模型加载会再次写容器样式，补一次确保恢复的位置生效
+			window.requestAnimationFrame(restore);
+			window.setTimeout(restore, 600);
+		}
+
+		let pressTimer: number | null = null;
+		let dragging = false;
+		let startX = 0;
+		let startY = 0;
+		let originLeft = 0;
+		let originTop = 0;
+		let pointerId: number | null = null;
+		let hasCapture = false;
+
+		const clearPressTimer = () => {
+			if (pressTimer !== null) {
+				window.clearTimeout(pressTimer);
+				pressTimer = null;
+			}
+		};
+
+		const onPointerDown = (event: PointerEvent) => {
+			if (event.button !== 0) return;
+			// 拖动期间禁止过渡：widget 在容器上挂了一次性 transitionend 监听，
+			// 拖动自产的过渡事件会冒泡并让 switchModel/destroy 提前放行。
+			clearPressTimer();
+			pressTimer = window.setTimeout(() => {
+				pressTimer = null;
+				dragging = true;
+				pointerId = event.pointerId;
+				const rect = container.getBoundingClientRect();
+				startX = event.clientX;
+				startY = event.clientY;
+				originLeft = rect.left;
+				originTop = rect.top;
+				pinToLeftTop(container);
+				container.style.transition = "none";
+				container.style.cursor = "grabbing";
+				container.classList.add(DRAG_CLASS);
+				// 捕获指针，让拖动期间的事件即使在模型外也继续送达。
+				// 必须 try/catch：指针可能已经释放（快速点击、触屏取消），
+				// 此时会抛 NotFoundError，未捕获会中断整个拖动初始化。
+				try {
+					container.setPointerCapture?.(event.pointerId);
+					hasCapture = true;
+				} catch {
+					hasCapture = false;
+				}
+			}, longPressMs);
+		};
+
+		const onPointerMove = (event: PointerEvent) => {
+			if (!dragging) return;
+			// 只认触发拖动的那个指针，避免多指/多设备事件串扰
+			if (pointerId !== null && event.pointerId !== pointerId) return;
+			// 跟手移动，超出视口的位移由 clampPosition 收敛
+			applyPosition(
+				container,
+				originLeft + (event.clientX - startX),
+				originTop + (event.clientY - startY),
+			);
+		};
+
+		const endDrag = (event: PointerEvent) => {
+			clearPressTimer();
+			if (!dragging) return;
+			dragging = false;
+			container.classList.remove(DRAG_CLASS);
+			container.style.cursor = "";
+			// 恢复 widget 原本的过渡设置（它自己在 slide 模式下写了 transform 过渡）
+			container.style.transition = "";
+			if (pointerId !== null) {
+				// 只在确实捕获成功时释放；否则同样会抛 NotFoundError
+				if (hasCapture) {
+					try {
+						container.releasePointerCapture?.(pointerId);
+					} catch {
+						/* 指针已释放，忽略 */
+					}
+				}
+				hasCapture = false;
+				pointerId = null;
+			}
+			// 松手时按钳制后的最终值落位，保证「屏幕上的位置」与「存下来的位置」一致
+			const rect = container.getBoundingClientRect();
+			const final = clampPosition(container, rect.left, rect.top);
+			applyPosition(container, final.left, final.top);
+			syncStatusBarPosition(container);
+			if (draggable.savePosition !== false) {
+				savePosition(final.left, final.top);
+			}
+			// 拖动结束后补一次：状态条可能在动画中才挂到 body 上
+			window.setTimeout(() => syncStatusBarPosition(container), 200);
+		};
+
+		container.addEventListener("pointerdown", onPointerDown);
+		container.addEventListener("pointermove", onPointerMove);
+		container.addEventListener("pointerup", endDrag);
+		container.addEventListener("pointercancel", endDrag);
+
+		const onResize = () => {
+			if (!container.isConnected) return;
+			const rect = container.getBoundingClientRect();
+			const clamped = clampPosition(container, rect.left, rect.top);
+			if (clamped.left !== rect.left || clamped.top !== rect.top) {
+				applyPosition(container, clamped.left, clamped.top);
+			}
+			syncStatusBarPosition(container);
+		};
+		window.addEventListener("resize", onResize);
+
+		dragDetach = () => {
+			clearPressTimer();
+			container.removeEventListener("pointerdown", onPointerDown);
+			container.removeEventListener("pointermove", onPointerMove);
+			container.removeEventListener("pointerup", endDrag);
+			container.removeEventListener("pointercancel", endDrag);
+			window.removeEventListener("resize", onResize);
+			container.classList.remove(DRAG_CLASS);
+			container.style.transition = "";
+			container.style.cursor = "";
+		};
+	}
+
 	window.addEventListener("resize", handleResponsive);
+	// 切页后重置模型索引：widget 容器在 swup 管理范围之外，切页不会重建它，
+	// 但 currentModelIndex 是模块级状态。不重置的话，切页后菜单里的“切换模型”
+	// 会从切页前的位置继续自增，与容器内显示的模型对不上。
+	document.addEventListener("swup:page:view", () => {
+		currentModelIndex = 0;
+	});
 </script>

@@ -5,7 +5,7 @@ updated: 2026-09-23
 description: 老文章才是流量底盘，76% 的流量来自历史内容。本文教你如何用 GSC 诊断内容老化、判断哪些文章值得更新、刷新老内容的具体方法，以及更新 vs 新写的取舍策略。
 tags: [SEO优化, 内容老化, 内容更新, 流量增长]
 category: 增长与SEO
-image: ./images/content-decay-refresh-strategy.jpg
+image: ./images/content-decay-refresh-strategy.avif
 slug: content-decay-refresh-strategy
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 4

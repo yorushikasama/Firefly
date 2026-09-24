@@ -5,7 +5,7 @@ updated: 2026-09-23
 description: 关键词有排名却没流量？可能是搜索意图错配。本文详解四种搜索意图类型、SERP 分析判断意图的方法、内容与意图匹配策略，以及错配后的三个修复方向。
 tags: [SEO优化, 搜索意图, SERP分析, 内容策略]
 category: 增长与SEO
-image: ./images/search-intent-mismatch-fix.jpg
+image: ./images/search-intent-mismatch-fix.avif
 slug: search-intent-mismatch-fix
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 3

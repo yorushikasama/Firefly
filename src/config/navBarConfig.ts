@@ -15,10 +15,9 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 	links.push(LinkPresets.Series);
 	links.push(LinkPresets.Archive);
 
-	// 项目 / 相册 / 书签导航：直接作为顶级入口
+	// 项目 / 相册：直接作为顶级入口
 	links.push(LinkPresets.Projects);
 	links.push(LinkPresets.Gallery);
-	links.push(LinkPresets.Booknav);
 
 	// 关于及其子菜单
 	links.push({
@@ -26,9 +25,6 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 		url: "#",
 		icon: "material-symbols:info",
 		children: [
-			// 打赏
-			LinkPresets.Sponsor,
-
 			// 关于页面
 			LinkPresets.About,
 		],
@@ -79,12 +75,6 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		icon: "material-symbols:photo-library",
 		pageKey: "gallery",
 	},
-	Booknav: {
-		name: "书签导航",
-		url: "/booknav/",
-		icon: "material-symbols:bookmarks",
-		pageKey: "booknav",
-	},
 	Bilibili: {
 		name: "哔哩哔哩",
 		url: "/bilibili/",
@@ -108,12 +98,6 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		url: "/myanimelist/",
 		icon: "material-symbols:menu-book",
 		pageKey: "mal",
-	},
-	Sponsor: {
-		name: "打赏",
-		url: "/sponsor/",
-		icon: "material-symbols:favorite",
-		pageKey: "sponsor",
 	},
 	About: {
 		name: "关于我",

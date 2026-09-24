@@ -108,6 +108,8 @@ enum I18nKey {
 	updatedAt = "updatedAt",
 	readTime = "readTime",
 	license = "license",
+	viewOriginal = "viewOriginal",
+	postPermalink = "postPermalink",
 	friends = "friends",
 	friendsDescription = "friendsDescription",
 	searchFriends = "searchFriends",

@@ -5,7 +5,7 @@ updated: 2026-07-28
 description: 资源页面是链接建设中投入产出比最高的白帽策略之一。本文从选题、创建、推广到维护，完整拆解如何用一页内容每年稳定获取高质量外链，包含完整操作流程和真实经验分享。适合独立站长和外贸独立站运营。
 tags: [SEO优化, 链接建设, 资源页面]
 category: 增长与SEO
-image: ./images/resource-page-link-building-guide.jpg
+image: ./images/resource-page-link-building-guide.avif
 slug: resource-page-link-building-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 11

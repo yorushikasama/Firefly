@@ -5,7 +5,7 @@ updated: 2026-09-23
 description: 产品页SKU多了，多个页面抢同一个大词，Google不知该推哪个？本文用GSC诊断是否蚕食，建立关键词映射表，从Title、H1、内链锚文本、URL四个维度拉开信号区隔。
 tags: [SEO, 实战指南, 关键词蚕食, 产品页SEO]
 category: 增长与SEO
-image: ./images/keyword-cannibalization-fix-guide.jpg
+image: ./images/keyword-cannibalization-fix-guide.avif
 slug: keyword-cannibalization-fix-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 5

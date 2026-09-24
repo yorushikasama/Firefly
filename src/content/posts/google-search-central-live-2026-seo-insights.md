@@ -5,7 +5,7 @@ updated: 2026-04-23
 description: 2026 年 4 月 Google 多伦多 Search Central Live 透露的 SEO 认知修正：索引门槛提高而非降低、AIO 阻止机制真相、Trends API 一致缩放、Markdown 转换无 SEO 价值等关键更新
 tags: [SEO优化, AI搜索, Google算法]
 category: 增长与SEO
-image: ./images/google-search-central-live-2026-seo-insights.jpg
+image: ./images/google-search-central-live-2026-seo-insights.avif
 slug: google-search-central-live-2026-seo-insights
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 14

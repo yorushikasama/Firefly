@@ -5,7 +5,7 @@ updated: 2026-04-21
 description: Google 不歧视 AI 内容本身，问题在于价值密度。本文揭示三个事实：Google 能识别但不一定惩罚，同质化内容不会被索引。如何破局？做 AI 做不了的事。
 tags: [内容运营, 底层逻辑, AI内容, SEO优化]
 category: 增长与SEO
-image: ./images/google-ai-content-seo-truth.jpg
+image: ./images/google-ai-content-seo-truth.avif
 slug: google-ai-content-seo-truth
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 13

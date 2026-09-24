@@ -131,6 +131,8 @@ export const ko: Translation = {
 	[Key.updatedAt]: "수정일",
 	[Key.readTime]: "읽는 시간",
 	[Key.license]: "라이선스",
+	[Key.viewOriginal]: "원문 보기",
+	[Key.postPermalink]: "이 글 링크",
 	[Key.bangumi]: "Bangumi",
 
 	// Bangumi Filter and Status Text

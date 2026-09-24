@@ -5,7 +5,7 @@ updated: 2026-05-13
 description: 域名迁移是不对称赌注，上行有限下行无限。本文从决策判断、准备清单、URL映射、重定向配置到迁移后监控，给出完整框架。准备阶段占90%工作量，迁移当天应该无聊才对。
 tags: [SEO优化, 实操指南, 域名迁移]
 category: 增长与SEO
-image: ./images/seo-domain-migration.jpg
+image: ./images/seo-domain-migration.avif
 slug: seo-domain-migration-guide
 series: "SEO&GEO 实战指南：从 Google SEO 到 AI 搜索"
 seriesOrder: 10
