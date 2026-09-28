@@ -138,7 +138,7 @@ importers:
         specifier: ^0.18.7
         version: 0.18.7
       l2d-widget:
-        specifier: ^0.1.1
+        specifier: 0.1.2
         version: 0.1.2(patch_hash=0d896e457248d3cf74887361da63d7f554714d8edbb8d7bd791938ab41071e6d)
       marked:
         specifier: ^18.0.12

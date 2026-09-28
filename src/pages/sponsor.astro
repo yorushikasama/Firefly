@@ -7,11 +7,12 @@ import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import "@/styles/pages/common.css";
 import { getLqipProps } from "@/utils/lqip-utils";
+import { isPageEnabledByEnv } from "@/utils/page-toggle-utils";
 import { url } from "@/utils/url-utils";
 import "@/styles/pages/sponsor.css";
 
-// 打赏页已下线：页面开关被移除，始终跳转 404
-if (import.meta.env.PUBLIC_PAGES_SPONSOR !== "0000") {
+// 打赏页已下线：默认跳转 404；仅当显式设置 PUBLIC_PAGES_SPONSOR=true 时才启用
+if (!isPageEnabledByEnv("sponsor", false)) {
 	return Astro.redirect("/404/");
 }
 

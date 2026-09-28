@@ -57,6 +57,7 @@ const licenseIcon = licenseName
   <a
     href={postUrl}
     target={sourceLink ? "_blank" : undefined}
+    rel={sourceLink ? "noopener noreferrer" : undefined}
     class="link text-(--primary) inline-flex items-center gap-1"
   >
     {sourceLink ? i18n(I18nKey.viewOriginal) : i18n(I18nKey.postPermalink)}

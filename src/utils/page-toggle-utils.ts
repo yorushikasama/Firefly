@@ -27,6 +27,14 @@ function readPageEnv(key: string): unknown {
 	}
 }
 
+// 读取单个页面开关：PUBLIC_PAGES_<KEY> 取 true/1/on 等为开、false/0/off 等为关
+// 未设置或取值无法识别时回退到 fallback。用于已从 siteConfig.pages 下线、
+// 但保留环境变量后门可临时重新启用的页面（booknav / sponsor）
+export function isPageEnabledByEnv(key: string, fallback: boolean): boolean {
+	const parsed = parseBooleanEnv(readPageEnv(key));
+	return parsed === undefined ? fallback : parsed;
+}
+
 // 应用页面开关的环境变量覆盖：PUBLIC_PAGES_<KEY> 优先于 siteConfig.pages.<KEY>
 // 这样在部署平台（Vercel / Cloudflare 等）配置环境变量即可开启/关闭页面，无需修改配置文件
 // 变量名必须带 PUBLIC_ 前缀，否则不会注入到浏览器端

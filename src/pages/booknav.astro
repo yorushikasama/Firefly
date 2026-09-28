@@ -11,10 +11,11 @@ import {
 	getEnabledBooknavGroups,
 	resolveBooknavIcon,
 } from "@/utils/booknav-utils";
+import { isPageEnabledByEnv } from "@/utils/page-toggle-utils";
 import "@/styles/pages/booknav.css";
 
-// 书签导航已下线：页面开关被移除，始终跳转 404
-if (import.meta.env.PUBLIC_PAGES_BOOKNAV !== "0000") {
+// 书签导航已下线：默认跳转 404；仅当显式设置 PUBLIC_PAGES_BOOKNAV=true 时才启用
+if (!isPageEnabledByEnv("booknav", false)) {
 	return Astro.redirect("/404/");
 }
 

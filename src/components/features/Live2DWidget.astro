@@ -504,7 +504,7 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 			);
 		};
 
-		const endDrag = (event: PointerEvent) => {
+		const endDrag = () => {
 			clearPressTimer();
 			if (!dragging) return;
 			dragging = false;
