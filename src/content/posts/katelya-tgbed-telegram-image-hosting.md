@@ -3,7 +3,8 @@ title: Katelya-TGBed：基于 Telegram 的免费无限图床/网盘方案
 published: 2026-09-24
 description: Katelya-TGBed 是一个利用 Telegram 作为后端存储、部署在 Cloudflare Pages 上的免费无限图床/文件床方案。主打轻量、免费、易部署，支持图片/视频/音频/文档在线预览、CDN 加速、上传 API，以及 R2、KV 扩展。
 tags: [Telegram, Cloudflare, 图床, 网盘, 开源]
-category: 网站搭建
+category: 技术
+image: ./images/katelya-tgbed-telegram-image-hosting.avif
 slug: katelya-tgbed-telegram-image-hosting
 author: katelya77
 sourceLink: https://linux.do/t/topic/1568602
@@ -39,9 +40,3 @@ licenseUrl: https://creativecommons.org/licenses/by-nc/4.0/
 ## 项目地址
 
 - **GitHub**：[github.com/katelya77/Katelya-TGBed](https://github.com/katelya77/Katelya-TGBed)
-
-欢迎体验并提出意见，如果觉得好用，可以给项目点个 Star 支持一下。
-
-## 备注
-
-作者目前主要测试了图片存储功能（初衷是存储个人照片），其他功能尚未经过完善测试，遇到问题欢迎在仓库提交 Issue，也欢迎开发者提交 PR 参与贡献。
