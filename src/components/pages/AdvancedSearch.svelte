@@ -4,6 +4,7 @@ import { i18n } from "@i18n/translation";
 import { onMount } from "svelte";
 import Icon from "@/components/common/Icon.svelte";
 import type { SearchResult } from "@/global";
+import { whenPagefindReady } from "@/utils/pagefind";
 import { url as formatUrl } from "@/utils/url-utils";
 
 // --- Props ---
@@ -73,13 +74,13 @@ const search = async () => {
 // --- Initialization onMount ---
 onMount(() => {
 	const initialize = async () => {
-		initialized = true;
-
 		// 从 URL 获取初始关键词
 		const initialKeyword = getInitialKeyword();
 		if (initialKeyword) {
 			keyword = initialKeyword;
 		}
+
+		initialized = true;
 
 		// 如果有关键词，自动执行搜索
 		if (keyword.trim()) {
@@ -87,20 +88,14 @@ onMount(() => {
 		}
 	};
 
-	// 开发环境直接初始化
+	// 开发环境直接初始化（使用 mock 结果，pagefind 不在 dev 下运行）
 	if (import.meta.env.DEV) {
-		initialize();
-	} else {
-		// 生产环境等待 Pagefind 加载
-		window.__loadPagefind?.();
-		if (window.pagefind) {
-			initialize();
-		} else {
-			document.addEventListener("pagefindready", initialize, {
-				once: true,
-			});
-		}
+		void initialize();
+		return;
 	}
+
+	// 生产环境：等待幂等的 pagefind 加载器完成后再解除门闩，避免错过一次性事件。
+	void whenPagefindReady().then(initialize);
 });
 
 let debounceTimer: NodeJS.Timeout;

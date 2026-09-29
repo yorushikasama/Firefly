@@ -2,10 +2,11 @@
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { navigateToPage } from "@utils/navigation-utils";
-import { onMount } from "svelte";
+import { onMount, tick } from "svelte";
 import Icon from "@/components/common/Icon.svelte";
 import type { SearchResult } from "@/global";
 import { FLOATING_PANEL_CLOSE_EVENT } from "@/utils/floating-panel-utils";
+import { whenPagefindReady } from "@/utils/pagefind";
 import { url as formatUrl, getSearchUrl } from "@/utils/url-utils";
 
 // --- State ---
@@ -34,9 +35,19 @@ const fakeResult: SearchResult[] = [
 
 // --- UI Logic ---
 // pagefind.js 是按需加载的（见 Navbar.astro），搜索 UI 一被碰到就触发。
-// 幂等，重复调用只会拿到同一个 promise。
+// 加载器幂等，重复调用只会拿到同一个 promise；加载完成后再解除 `initialized`
+// 门闩。桌面/移动两个输入框共用一套 debounce 状态，`initialized` 翻转会同时唤醒两条
+// reactive 语句，其中空关键词的那条会清掉共享 debounce；因此先 await tick() 让 reactive
+// 跑完，再补跑真正有关键词的查询，确保它最后生效（否则快速输入者会看到结果被吞掉）。
 const requestPagefind = (): void => {
-	window.__loadPagefind?.();
+	if (import.meta.env.DEV) return;
+	void whenPagefindReady().then(async () => {
+		if (initialized) return;
+		initialized = true;
+		await tick();
+		if (keywordDesktop) search(keywordDesktop, true);
+		else if (keywordMobile) search(keywordMobile, false);
+	});
 };
 
 const togglePanel = () => {
@@ -138,28 +149,13 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 
 // --- Initialization onMount ---
 onMount(() => {
-	const initializePagefind = () => {
-		initialized = true;
-		if (keywordDesktop) search(keywordDesktop, true);
-		if (keywordMobile) search(keywordMobile, false);
-	};
-
+	// 开发环境用 mock 结果，直接解除门闩；生产环境等首次交互触发 requestPagefind
+	// 后加载完成再解除。若从搜索页跳转过来 pagefind 可能已就绪，此时也立即解除。
 	if (import.meta.env.DEV) {
 		console.log("Pagefind mock enabled in development mode.");
-		initializePagefind();
-	} else {
-		if (window.pagefind) {
-			// If script already loaded
-			initializePagefind();
-		} else {
-			// Listen for the event
-			document.addEventListener("pagefindready", initializePagefind, {
-				once: true,
-			});
-			document.addEventListener("pagefindloaderror", initializePagefind, {
-				once: true,
-			});
-		}
+		initialized = true;
+	} else if (window.pagefind) {
+		initialized = true;
 	}
 
 	const panel = document.getElementById("search-panel");
@@ -167,8 +163,6 @@ onMount(() => {
 
 	return () => {
 		panel?.removeEventListener(FLOATING_PANEL_CLOSE_EVENT, cancelPendingSearch);
-		document.removeEventListener("pagefindready", initializePagefind);
-		document.removeEventListener("pagefindloaderror", initializePagefind);
 		cancelPendingSearch();
 	};
 });
