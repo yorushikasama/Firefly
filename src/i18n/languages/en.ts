@@ -91,6 +91,14 @@ export const en: Translation = {
 	[Key.searchBooknav]: "Search bookmarks...",
 	[Key.booknavEmpty]: "No bookmarks yet.",
 
+	[Key.resources]: "Resources",
+	[Key.resourcesDescription]:
+		"Tools, websites and open-source projects I recommend, with the reason why",
+	[Key.searchResources]: "Search resources...",
+	[Key.resourcesEmpty]: "No recommended resources yet.",
+	[Key.resourcesOpenSource]: "Open source",
+	[Key.resourcesPaid]: "Paid",
+
 	// Project showcase
 	[Key.projects]: "Projects",
 	[Key.projectsDescription]: "Here are the projects I've built",

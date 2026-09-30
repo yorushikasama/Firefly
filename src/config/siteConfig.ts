@@ -21,6 +21,8 @@ const pages = resolvePageToggles({
 	dynamic: false,
 	// 项目展示页开关
 	projects: true,
+	// 资源推荐页开关
+	resources: true,
 	// 相册页面开关
 	gallery: true,
 	// 哔哩哔哩追番页面开关

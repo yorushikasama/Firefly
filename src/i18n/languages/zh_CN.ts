@@ -89,6 +89,13 @@ export const zh_CN: Translation = {
 	[Key.searchBooknav]: "搜索书签...",
 	[Key.booknavEmpty]: "暂无书签",
 
+	[Key.resources]: "资源推荐",
+	[Key.resourcesDescription]: "我推荐的工具、网站与开源项目，附上推荐理由",
+	[Key.searchResources]: "搜索资源...",
+	[Key.resourcesEmpty]: "暂无推荐资源",
+	[Key.resourcesOpenSource]: "开源",
+	[Key.resourcesPaid]: "付费",
+
 	// 项目展示页
 	[Key.projects]: "项目",
 	[Key.projectsDescription]: "这里展示我开发过的项目",

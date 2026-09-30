@@ -39,6 +39,11 @@ export type {
 	NavBarConfig,
 	PlantUMLConfig,
 	ProfileConfig,
+	ResourcesFaviconConfig,
+	ResourcesGroup,
+	ResourcesItem,
+	ResourcesPageConfig,
+	ResourcesPlatform,
 	SakuraConfig,
 	SidebarLayoutConfig,
 	SiteConfig,
@@ -78,6 +83,7 @@ export { navBarConfig } from "./navBarConfig"; // 导航栏配置
 export { live2dWidgetConfig, spineModelConfig } from "./pioConfig"; // 看板娘配置
 export { plantumlConfig } from "./plantumlConfig"; // PlantUML 图表配置
 export { profileConfig, profileGithubUrl } from "./profileConfig"; // 用户资料配置
+export { resourcesConfig, resourcesPageConfig } from "./resourcesConfig"; // 资源推荐配置
 // 布局配置
 export { sidebarLayoutConfig } from "./sidebarConfig"; // 侧边栏布局配置
 // 核心配置

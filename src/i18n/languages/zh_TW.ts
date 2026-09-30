@@ -89,6 +89,13 @@ export const zh_TW: Translation = {
 	[Key.searchBooknav]: "搜尋書籤...",
 	[Key.booknavEmpty]: "暫無書籤",
 
+	[Key.resources]: "資源推薦",
+	[Key.resourcesDescription]: "我推薦的工具、網站與開源專案，附上推薦理由",
+	[Key.searchResources]: "搜尋資源...",
+	[Key.resourcesEmpty]: "暫無推薦資源",
+	[Key.resourcesOpenSource]: "開源",
+	[Key.resourcesPaid]: "付費",
+
 	// 專案展示頁
 	[Key.projects]: "專案",
 	[Key.projectsDescription]: "這裡展示我開發過的專案",

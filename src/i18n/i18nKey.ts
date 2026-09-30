@@ -124,6 +124,14 @@ enum I18nKey {
 	searchBooknav = "searchBooknav",
 	booknavEmpty = "booknavEmpty",
 
+	// 资源推荐
+	resources = "resources",
+	resourcesDescription = "resourcesDescription",
+	searchResources = "searchResources",
+	resourcesEmpty = "resourcesEmpty",
+	resourcesOpenSource = "resourcesOpenSource",
+	resourcesPaid = "resourcesPaid",
+
 	// 项目展示页
 	projects = "projects",
 	projectsDescription = "projectsDescription",

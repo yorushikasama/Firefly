@@ -91,6 +91,14 @@ export const ru: Translation = {
 	[Key.searchBooknav]: "Поиск закладок...",
 	[Key.booknavEmpty]: "Закладок пока нет.",
 
+	[Key.resources]: "Рекомендуемые ресурсы",
+	[Key.resourcesDescription]:
+		"Инструменты, сайты и open-source проекты, которые я рекомендую, с пояснением почему",
+	[Key.searchResources]: "Поиск ресурсов...",
+	[Key.resourcesEmpty]: "Рекомендуемых ресурсов пока нет.",
+	[Key.resourcesOpenSource]: "Открытый код",
+	[Key.resourcesPaid]: "Платная",
+
 	// Витрина проектов
 	[Key.projects]: "Проекты",
 	[Key.projectsDescription]: "Мои разработанные проекты",

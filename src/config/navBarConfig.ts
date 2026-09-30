@@ -15,8 +15,9 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 	links.push(LinkPresets.Series);
 	links.push(LinkPresets.Archive);
 
-	// 项目 / 相册：直接作为顶级入口
+	// 项目 / 软件推荐 / 相册：直接作为顶级入口
 	links.push(LinkPresets.Projects);
+	links.push(LinkPresets.Resources);
 	links.push(LinkPresets.Gallery);
 
 	// 关于及其子菜单
@@ -68,6 +69,12 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		url: "/projects/",
 		icon: "material-symbols:rocket-launch",
 		pageKey: "projects",
+	},
+	Resources: {
+		name: "资源",
+		url: "/resources/",
+		icon: "material-symbols:bookmarks-rounded",
+		pageKey: "resources",
 	},
 	Gallery: {
 		name: "相册",

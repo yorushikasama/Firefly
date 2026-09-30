@@ -90,6 +90,14 @@ export const ja: Translation = {
 	[Key.searchBooknav]: "ブックマークを検索...",
 	[Key.booknavEmpty]: "ブックマークがありません",
 
+	[Key.resources]: "おすすめリソース",
+	[Key.resourcesDescription]:
+		"おすすめのツール・サイト・OSSを理由付きで紹介します",
+	[Key.searchResources]: "リソースを検索...",
+	[Key.resourcesEmpty]: "おすすめリソースはまだありません",
+	[Key.resourcesOpenSource]: "オープンソース",
+	[Key.resourcesPaid]: "有料",
+
 	// プロジェクト展示ページ
 	[Key.projects]: "プロジェクト",
 	[Key.projectsDescription]: "私が開発したプロジェクトです",

@@ -90,6 +90,14 @@ export const ko: Translation = {
 	[Key.searchBooknav]: "북마크 검색...",
 	[Key.booknavEmpty]: "북마크가 없습니다.",
 
+	[Key.resources]: "추천 리소스",
+	[Key.resourcesDescription]:
+		"제가 추천하는 도구, 웹사이트, 오픈소스 프로젝트를 이유와 함께 정리했습니다",
+	[Key.searchResources]: "리소스 검색...",
+	[Key.resourcesEmpty]: "추천 리소스가 없습니다.",
+	[Key.resourcesOpenSource]: "오픈소스",
+	[Key.resourcesPaid]: "유료",
+
 	// 프로젝트 쇼케이스
 	[Key.projects]: "프로젝트",
 	[Key.projectsDescription]: "제가 개발한 프로젝트입니다",
