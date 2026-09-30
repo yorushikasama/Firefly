@@ -35,10 +35,6 @@ bash skills_tools.sh
 
 ## 工作原理
 
-Cloudflare + Nginx + Fail2ban 的工作原理
-
-![Cloudflare + Nginx + Fail2ban 工作原理](./images/fail2ban-cloudflare-auto-defense.avif)
-
 `/etc/fail2ban/action.d/cloudflare.conf` 文件的功能，Fail2ban 执行封禁和解封时调用 Cloudflare 防火墙的具体命令
 
 ```bash
