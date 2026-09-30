@@ -21,7 +21,7 @@ licenseUrl: https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 有些观点值得说清楚。
 
-![Google SEO](./images/google-ai-content-seo-truth-1.webp)
+![Google SEO](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/google-ai-content-seo-truth/google-ai-content-seo-truth-1.webp)
 
 ### 三个事实
 
@@ -47,7 +47,7 @@ licenseUrl: https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 这才是要害。Google 不需要在搜索结果里放 10 篇说同样话的文章。如果全网已经有 10000 个站点在讲同一件事，你的内容又没有增量价值，那 Google 根本不需要索引——更别提排名了。
 
-![Search Console 效果报告](./images/google-ai-content-seo-truth-2.webp)
+![Search Console 效果报告](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/google-ai-content-seo-truth/google-ai-content-seo-truth-2.webp)
 
 ### 同质化陷阱
 

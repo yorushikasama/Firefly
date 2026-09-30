@@ -4,7 +4,7 @@ published: 2025-04-25
 updated: 2025-04-25
 description: 用 GitHub 私有仓库存图 + Cloudflare Workers 反代 raw.githubusercontent.com，打造免费且可加速的自建图床。教程覆盖创建仓库、生成 Token、部署 Workers 反代脚本、绑定自定义域名，以及 PicGo 上传配置。
 tags: [GitHub, Cloudflare, 图床, PicGo, 建站]
-category: 网站搭建
+category: 技术
 image: ./images/github-image-hosting-cloudflare.avif
 slug: github-image-hosting-cloudflare
 author: skilladd
@@ -27,36 +27,36 @@ licenseUrl: https://creativecommons.org/licenses/by-nc/4.0/
 
 登录 GitHub，点击创建仓库的按钮。
 
-![创建 GitHub 仓库](./images/github-image-hosting/github1.png)
+![创建 GitHub 仓库](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github1.png)
 
 输入**自定义仓库名**，勾选上仓库**私有**
 
-![设置仓库名并勾选私有](./images/github-image-hosting/github2.png)
+![设置仓库名并勾选私有](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github2.png)
 
 仓库创建后，随便创建一个文件
 
-![在仓库中创建文件](./images/github-image-hosting/github3.png)
+![在仓库中创建文件](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github3.png)
 
 点击创建，到此存储图片的仓库创建完成。
 
-![仓库创建完成](./images/github-image-hosting/github5.png)
+![仓库创建完成](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github5.png)
 
 ## 获取 GitHub 的 Token
 
 1. 点击 GitHub 头像，点击**设置**（**settings**）的按钮
 2. 点击「**开发者设置**」
 
-![进入开发者设置](./images/github-image-hosting/github6.png)
+![进入开发者设置](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github6.png)
 
 创建 token
 
-![创建 token](./images/github-image-hosting/github7.png)
+![创建 token](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github7.png)
 
-![配置 token 权限](./images/github-image-hosting/github8.png)
+![配置 token 权限](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github8.png)
 
 创建完成，保存一下 token。
 
-![保存 token](./images/github-image-hosting/github9.png)
+![保存 token](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github9.png)
 
 ## CloudFlare 加速图床访问
 
@@ -65,7 +65,7 @@ licenseUrl: https://creativecommons.org/licenses/by-nc/4.0/
 1. 登录 CloudFlare 的网站
 2. 创建一个 **workers** 的项目
 
-![创建 workers 项目](./images/github-image-hosting/github11.png)
+![创建 workers 项目](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github11.png)
 
 在 **Workers.js**，粘贴如下代码
 
@@ -269,13 +269,13 @@ async function device_status(user_agent_info) {
 - `upstream_path = "/<用户>/<仓库名>/<分支>"`
 - `github_token = "github的token"`
 
-![替换配置并部署](./images/github-image-hosting/github14.png)
+![替换配置并部署](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github14.png)
 
 ### 配置域名
 
 输入自定义域名
 
-![绑定自定义域名](./images/github-image-hosting/github15.png)
+![绑定自定义域名](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github15.png)
 
 ## PicGo 安装 / 配置
 
@@ -283,10 +283,10 @@ PicGo 项目地址：**[链接直达](https://github.com/Molunerfinn/PicGo)**
 
 安装 PicGo 项目 2.4.0 版本下载：[链接直达](https://github.com/Molunerfinn/PicGo/releases)（**修复插件列表无法搜索的问题**）
 
-![PicGo 上传配置](./images/github-image-hosting/github16.png)
+![PicGo 上传配置](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/github16.png)
 
 ## 问题
 
 每天有 **10 万次**的请求限制，但是对于个人而言，足以。
 
-![每日请求量统计](./images/github-image-hosting/2.png)
+![每日请求量统计](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-image-hosting/2.png)
