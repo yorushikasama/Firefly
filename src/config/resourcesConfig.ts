@@ -220,6 +220,16 @@ export const resourcesConfig: ResourcesGroup[] = [
 				weight: 10,
 			},
 			{
+				title: "C Cleaner Plus",
+				url: "https://github.com/Kiowx/c_cleaner_plus",
+				desc: "Windows 开源强力清理工具，全盘扫描垃圾文件、大文件、重复文件与系统残留",
+				icon: "https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/resources-icons/c_cleaner_plus.png",
+				platforms: ["windows"],
+				openSource: true,
+				free: true,
+				weight: 10,
+			},
+			{
 				title: "MPV",
 				url: "https://mpv.io/",
 				desc: "极简但解码能力极强的播放器，配置脚本后什么格式都能放",
