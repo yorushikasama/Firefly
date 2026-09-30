@@ -81,12 +81,12 @@ export const backgroundWallpaper: BackgroundWallpaperConfig = {
 			titleSize: "4.5rem",
 			// 主页横幅副标题
 			subtitle: [
-				"In Reddened Chrysalis, I Once Rest",
-				"From Shattered Sky, I Free Fall",
-				"Amidst Silenced Stars, I Deep Sleep",
-				"Upon Lighted Fyrefly, I Soon Gaze",
-				"From Undreamt Night, I Thence Shine",
-				"In Finalized Morrow, I Full Bloom",
+				"In Crimson Genome, I Once Pray",
+				"From Shattered Void, I Break Chain",
+				"Amidst Falling Sakura, I Soft Weep",
+				"Upon Bleeding Heart, I Deep Ache",
+				"From Silent Chains, I Thence Sing",
+				"In Finalized Prayer, I Fade Bloom",
 			],
 			// 主页横幅副标题字体大小
 			subtitleSize: "1.5rem",
@@ -116,7 +116,7 @@ export const backgroundWallpaper: BackgroundWallpaperConfig = {
 				{
 					name: "Email",
 					icon: "fa7-solid:envelope",
-					url: "mailto:inori@example.com",
+					url: "mailto:1371356392@qq.com",
 				},
 				{
 					name: "RSS",
