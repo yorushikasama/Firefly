@@ -40,11 +40,11 @@ licenseUrl: https://creativecommons.org/licenses/by-nc/4.0/
 3. 创建成功后会进入仓库主界面。至此，图床仓库就算建好了，接下来就是如何上传图片。
 
 
-![新建仓库入口](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/05.jpg)
+![新建仓库入口](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/05.jpg)
 
-[填写仓库信息并设为 public](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/06.jpg)
+[填写仓库信息并设为 public](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/06.jpg)
 
-![仓库创建完成后的主界面](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/07.jpg)
+![仓库创建完成后的主界面](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/07.jpg)
 
 ## 上传图片
 
@@ -52,7 +52,7 @@ licenseUrl: https://creativecommons.org/licenses/by-nc/4.0/
 
 PicGo 的安装很简单，去 [官网](https://molunerfinn.com/PicGo/) 下载对应版本安装即可。下面主要讲讲怎么用它上传图片。配置过程如下：
 
-![PicGo 主界面](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/08.jpg)
+![PicGo 主界面](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/08.jpg)
 
 1. 先去 GitHub 创建一个 token：依次打开 `Settings -> Developer settings -> Personal access tokens`，点击 `Generate new token`；
 2. 填写并勾选相关信息，然后点击 `Generate token`；
@@ -61,19 +61,19 @@ PicGo 的安装很简单，去 [官网](https://molunerfinn.com/PicGo/) 下载�
 5. 填写相关信息，最后点击「确定」即可；如需将其作为默认图床，点击「设为默认图床」；
 6. 之后就能通过上传区上传图片了（Ctrl+V 粘贴或直接拖拽都行），也可以用快捷键上传（默认为 `Ctrl + Shift + P`）。
 
-![进入 Developer settings](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/09.jpg)
+![进入 Developer settings](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/09.jpg)
 
-![新建 Personal access token](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/10.jpg)
+![新建 Personal access token](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/10.jpg)
 
-![填写并勾选 token 权限](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/11.jpg)
+![填写并勾选 token 权限](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/11.jpg)
 
-![复制生成的 token](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/12.jpg)
+![复制生成的 token](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/12.jpg)
 
-![打开 PicGo 的 GitHub 图床设置](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/13.jpg)
+![打开 PicGo 的 GitHub 图床设置](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/13.jpg)
 
-![填写图床配置信息](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/14.jpg)
+![填写图床配置信息](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/14.jpg)
 
-![通过上传区上传图片](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/15.jpg)
+![通过上传区上传图片](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/15.jpg)
 
 ## 加速访问
 
@@ -81,11 +81,11 @@ PicGo 的安装很简单，去 [官网](https://molunerfinn.com/PicGo/) 下载�
 
 这时可以用 [jsDelivr](https://www.jsdelivr.com/) 进行免费加速，设置方法也很简单，只需在 PicGo 的图床配置里填入如下自定义域名即可：
 
-> https://cdn.jsdelivr.net/gh/用户名/仓库名
+> https://cdn.jsdelivr.net/gh/用户名/仓库名@main
 
-比如作者的就是 `https://cdn.jsdelivr.net/gh/cunyu1943/blog-imgs`。
+注意 `@main` 指定要加速的分支，这是 jsDelivr 的标准链接格式，建议保留（省略分支属于未定义行为，实测可能被 301 跳转到 GitHub 原始地址）。比如作者的就是 `https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main`。
 
-![在 PicGo 中填写 jsDelivr 自定义域名](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/github-picgo-free-image-hosting/16.jpg)
+![在 PicGo 中填写 jsDelivr 自定义域名](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/github-picgo-free-image-hosting/16.jpg)
 
 ## 图床推荐
 

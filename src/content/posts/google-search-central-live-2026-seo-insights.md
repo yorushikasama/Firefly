@@ -17,7 +17,7 @@ licenseUrl: https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 2026 年 4 月，Google 在多伦多举办首次加拿大 Search Central Live。官方展示的大量的幻灯片透露的并不是「新概念」，而是对现有认知的修正。
 
-![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/google-search-central-live-2026-seo-insights/scl2026-1.webp)
+![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/google-search-central-live-2026-seo-insights/scl2026-1.webp)
 
 ## 一、索引机制：门槛在升高，不是降低
 
@@ -31,7 +31,7 @@ Google 不再「来者不拒」，而是通过 **Selective Indexing** 主动选�
 
 诊断优先级：先查质量，再查技术。
 
-![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/google-search-central-live-2026-seo-insights/scl2026-2.webp)
+![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/google-search-central-live-2026-seo-insights/scl2026-2.webp)
 
 ### 流量下降的归因纠正
 
@@ -53,7 +53,7 @@ AI 内容流量下降，常被归因于「用了 AI」。但 Google 的算法逻
 
 很多人以为阻止 Google-Extended bot 就能阻止内容进入 AI Overview，这是误解。
 
-![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/google-search-central-live-2026-seo-insights/scl2026-3.webp)
+![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/google-search-central-live-2026-seo-insights/scl2026-3.webp)
 
 ### fanouts 与 grounding 的技术逻辑
 
@@ -88,7 +88,7 @@ AI 内容流量下降，常被归因于「用了 AI」。但 Google 的算法逻
 
 Agentic Search 的高级功能目前主要适用于电商领域。其他领域的 **User Centric Productivity (UCP)** 之外，暂无高级 agentic 功能机会。
 
-![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/google-search-central-live-2026-seo-insights/scl2026-5.webp)
+![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/google-search-central-live-2026-seo-insights/scl2026-5.webp)
 
 ---
 
@@ -136,7 +136,7 @@ Google 搜索联络官 Danny Sullivan 重申：「 **SEO for AI is still SEO** �
 
 AI 搜索使用的排名信号与传统搜索一致。GEO (Generative Engine Optimization) 不是新学科，而是 SEO 的子集。那些宣称「AI 改变一切」的说法，要么是误解，要么是营销。
 
-![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/google-search-central-live-2026-seo-insights/scl2026-4.webp)
+![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/google-search-central-live-2026-seo-insights/scl2026-4.webp)
 
 在 AI 搜索时代，SEO 从业者无需学习新框架。原有技能组合——关键词研究、意图对齐、技术优化、内容质量——仍然是成功的基础。AI 工具可用于内容起草，但人工审核不可省略，E-E-A-T 信号在 AI 搜索中权重更高，同时长尾查询将成为 AI 引用的主战场。
 
@@ -155,7 +155,7 @@ Google 团队确认：
 
 ### Structured Data 的新机会点
 
-![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/google-search-central-live-2026-seo-insights/scl2026-6.webp)
+![](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/google-search-central-live-2026-seo-insights/scl2026-6.webp)
 
 Rich Results Testing Tool 与通用 Schema Testing App 的区别：
 

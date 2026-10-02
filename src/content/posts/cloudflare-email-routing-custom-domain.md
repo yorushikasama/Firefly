@@ -33,7 +33,7 @@ Cloudflare 是世界上用户量最大的 CDN 服务商，截至 2022 年 1 月�
 
 > **注意**：DNS 解析记录中如果添加过其他邮箱服务商的 MX 记录，需要先删除原有 MX 记录。
 
-![在 Cloudflare 后台一键导入 MX 记录](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/001.png)
+![在 Cloudflare 后台一键导入 MX 记录](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/001.png)
 
 ## 三、配置 Cloudflare Email Routing
 
@@ -43,7 +43,7 @@ Cloudflare 是世界上用户量最大的 CDN 服务商，截至 2022 年 1 月�
 
 Destination addresses 目标地址是**同一 Cloudflare 账户下所有域名共享的**。同一个账户下，如果你在配置域名 A 的邮件转发时验证了 `test@example.com`，那配置域名 B 的邮件转发时可以直接填入 `test@example.com`，无需再次验证。
 
-![配置目标地址并完成验证](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/002.png)
+![配置目标地址并完成验证](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/002.png)
 
 ### 3.2 Custom addresses（自定义地址）
 
@@ -65,18 +65,18 @@ Destination addresses 目标地址是**同一 Cloudflare 账户下所有域名�
 
 在浏览器新窗口打开 [Google 应用密码配置页面](https://myaccount.google.com/apppasswords)，登录谷歌账户后即可获取一个新的专属应用密码。「设备」可以选择其他，然后自己填入自定义信息方便记忆。获取密码后记得先保存。
 
-![获取 Google 应用密码](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/004.png)
+![获取 Google 应用密码](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/004.png)
 
 在 Gmail 设置 – Accounts and Import 中，找到发送邮件的位置，点击「添加新邮箱地址」。
 
-![Gmail 中添加新邮箱地址](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/005.png)
+![Gmail 中添加新邮箱地址](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/005.png)
 
 点击添加新邮箱地址，会出现下图弹窗：
 
 - **邮箱名字**会用于之后发邮件的默认名，会对外展示，请慎重填写。
 - **域名邮箱地址**请事先在 Cloudflare 中配置此前缀域名邮箱，确认可以接收邮件。
 
-![填写发件人名称与域名邮箱地址](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/006.png)
+![填写发件人名称与域名邮箱地址](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/006.png)
 
 进入下一步，填写 SMTP 信息：
 
@@ -85,25 +85,25 @@ Destination addresses 目标地址是**同一 Cloudflare 账户下所有域名�
 - **username**：填写原本 Gmail 的用户名，即邮箱地址中除去 `@gmail.com` 之外的信息
 - **password**：使用上一步获取的专属应用密码
 
-![填写 SMTP 参数](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/007.png)
+![填写 SMTP 参数](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/007.png)
 
 如果上述信息填写成功，即可进入下一页面，Gmail 会收到一封邮件，填入对应的验证码即可。
 
-![填入 Gmail 验证码](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/008.png)
+![填入 Gmail 验证码](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/008.png)
 
 配置完成后，发送邮件时就可以选择自定义邮箱了。也可以在 Gmail 设置中将此邮箱地址作为默认发件地址。
 
-![发件时选择自定义邮箱](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/009.png)
+![发件时选择自定义邮箱](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/009.png)
 
 ### 4.2 Outlook 邮箱
 
 - 进入邮箱设置 → 邮件 → 同步电子邮件
 
-![Outlook 同步电子邮件设置](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/010.png)
+![Outlook 同步电子邮件设置](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/010.png)
 
 - 选择或选择主类别
 
-![选择主类别](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/011.png)
+![选择主类别](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/011.png)
 
 - 之后与 Gmail 操作相似，完成身份认证即可
 
@@ -111,15 +111,15 @@ Destination addresses 目标地址是**同一 Cloudflare 账户下所有域名�
 
 - 进入邮箱设置 → 账号与邮箱中心 → 添加发件人
 
-![163 邮箱添加发件人](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/012.png)
+![163 邮箱添加发件人](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/012.png)
 
 - 选择通过网易代发
 
-![选择通过网易代发](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/013.png)
+![选择通过网易代发](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/013.png)
 
 - 完成代发邮件验证
 
-![完成代发验证](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img/cloudflare-email-forwarding/014.png)
+![完成代发验证](https://cdn.jsdelivr.net/gh/yorushika333-ship-it/blog-img@main/cloudflare-email-forwarding/014.png)
 
 ## 其他邮箱服务
 
