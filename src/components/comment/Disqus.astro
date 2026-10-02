@@ -33,10 +33,22 @@ const shortname = commentConfig.disqus.shortname;
   }
 
   ;(function () {
-    var d = document,
-      s = d.createElement('script')
+    var d = document
+    // scripts-plugin 换页会重跑本脚本：embed.js 已存在时再次 append 会重复嵌入，
+    // 改用 DISQUS.reset 让既有实例按新的 disqus_config 重载
+    if (d.querySelector('script[src*=".disqus.com/embed.js"]')) {
+      if (window.DISQUS && d.getElementById('disqus_thread')) {
+        window.DISQUS.reset({ reload: true })
+      }
+      return
+    }
+    var s = d.createElement('script')
     s.src = 'https://' + shortname + '.disqus.com/embed.js'
     s.setAttribute('data-timestamp', new Date().toString())
+    // 加载失败时移除标签，让下次进入评论页能重新注入
+    s.onerror = function () {
+      s.remove()
+    }
     ;(d.head || d.body).appendChild(s)
   })()
 </script>

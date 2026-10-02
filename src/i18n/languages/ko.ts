@@ -244,6 +244,9 @@ export const ko: Translation = {
 	[Key.bilibiliNotConfigured]: "Bilibili 데이터 소스가 설정되지 않았습니다",
 	[Key.bilibiliNotConfiguredDesc]:
 		"src/config/siteConfig.ts에서 bilibili.uid를 설정하세요",
+	[Key.bilibiliFetchError]: "Bilibili 데이터 가져오기 실패",
+	[Key.bilibiliFetchErrorDesc]:
+		"빌드 중 Bilibili API에서 데이터를 가져오지 못했습니다. UID 설정을 확인하고 계정 목록이 공개 상태인지 확인하세요.",
 
 	// Anime Tracking - Shared components
 	[Key.animeTotal]: "총계",

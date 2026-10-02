@@ -14,6 +14,7 @@ export function fetchWithDedup<T>(url: string): Promise<T> {
 		return r.json() as Promise<T>;
 	});
 	pendingFetches.set(url, promise);
-	promise.finally(() => pendingFetches.delete(url));
+	// 清理 promise 的拒绝需自行接住，否则请求失败时报 UnhandledPromiseRejection
+	promise.catch(() => {}).finally(() => pendingFetches.delete(url));
 	return promise;
 }

@@ -237,9 +237,12 @@ export async function GET({
 		year: "numeric",
 		month: "short",
 		day: "numeric",
+		// 固定时区：date-only 的 frontmatter 在 UTC 负偏移的构建机上会前移一天
+		timeZone: siteConfig.timezone || "UTC",
 	});
 
-	const description = post.data.description;
+	// 密码保护文章的摘要视为受保护内容，不画进公开可抓取的 OG 图
+	const description = post.data.password ? "" : post.data.description;
 
 	return new ImageResponse(
 		{

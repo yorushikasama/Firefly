@@ -25,11 +25,14 @@ const isConfigured = !!BILIBILI_UID && BILIBILI_UID.trim() !== "";
 
 // 获取 Bilibili 追番 + 追剧数据
 let animeList: StandardizedAnime[] = [];
+let fetchFailed = false;
 if (BILIBILI_UID) {
 	try {
 		animeList = await fetchBilibiliList(BILIBILI_UID);
 		console.log(`[Bilibili] Page data: ${animeList.length} items`);
 	} catch (error) {
+		// 与 MAL/VNDB 页一致：构建期拉取失败在页面上给出可见提示，而不是静默空白
+		fetchFailed = true;
 		console.error("[Bilibili] Failed to fetch data:", error);
 	}
 }
@@ -77,6 +80,19 @@ const bilibiliAverageRating =
             </h2>
             <p class="text-black/60 dark:text-white/60 mb-4 max-w-md mx-auto">
               {i18n(I18nKey.bilibiliNotConfiguredDesc)}
+            </p>
+          </div>
+        ) : fetchFailed ? (
+          /* 获取失败提示 */
+          <div class="text-center py-16">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-(--btn-regular-bg) rounded-full mb-6 border border-(--line-divider)">
+              <Icon name="material-symbols:error-outline" class="text-[2rem] text-red-500" />
+            </div>
+            <h2 class="text-xl font-semibold text-black/80 dark:text-white/80 mb-3">
+              {i18n(I18nKey.bilibiliFetchError)}
+            </h2>
+            <p class="text-black/60 dark:text-white/60 mb-4 max-w-md mx-auto">
+              {i18n(I18nKey.bilibiliFetchErrorDesc)}
             </p>
           </div>
         ) : (

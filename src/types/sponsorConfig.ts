@@ -25,5 +25,4 @@ export type SponsorConfig = {
 	sponsors?: SponsorItem[]; // 打赏者列表（可选）
 	showSponsorsList?: boolean; // 是否显示打赏者列表，默认 true
 	showComment?: boolean; // 是否显示评论区，默认 false
-	showButtonInPost?: boolean; // 是否在文章详情页底部显示打赏按钮，默认 true
 };

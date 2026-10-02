@@ -360,8 +360,16 @@ async function main() {
 	console.log("🗑 Cleaning up original font files from dist/...");
 	for (const originalFiles of originalFilesByResult.values()) {
 		for (const originalFile of originalFiles) {
-			await fs.unlink(originalFile);
-			console.log(`   ✔ Removed: ${originalFile}`);
+			try {
+				await fs.unlink(originalFile);
+				console.log(`   ✔ Removed: ${originalFile}`);
+			} catch (err) {
+				// 两个 cssVariable 变体指向同一字体文件（内容哈希相同）时会重复
+				// unlink 同一 dist 文件，ENOENT 属预期，直接忽略
+				if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") {
+					throw err;
+				}
+			}
 		}
 	}
 

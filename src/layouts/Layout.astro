@@ -246,7 +246,7 @@ const ogImageAlt = propsOgImageAlt ?? pageTitle;
               avatarUrl,
               logo: siteLogo,
             }),
-          )}
+          ).replace(/</g, "\\u003c")}
         />
       )
     }

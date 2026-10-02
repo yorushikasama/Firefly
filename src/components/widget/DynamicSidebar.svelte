@@ -66,10 +66,11 @@ function updateCountBadge() {
 }
 
 // 从 HTML 中提取纯文本摘要
+// 用 DOMParser 解析：inert 文档不加载资源、不执行脚本，避免 detached div
+// innerHTML 触发 <img onerror>（html 可能来自 Memos 或第三方 API）
 function getPlainText(html: string): string {
-	const div = document.createElement("div");
-	div.innerHTML = html;
-	return div.textContent?.trim() || "";
+	const doc = new DOMParser().parseFromString(html, "text/html");
+	return doc.body.textContent?.trim() || "";
 }
 
 // 格式化日期

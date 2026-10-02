@@ -23,6 +23,10 @@ const SKIPPED_NODE_TYPES = new Set([
 
 const frontmatterCache = new Map();
 
+// 与 src/utils/content-utils.ts 的草稿过滤保持同一规则：
+// 生产环境跳过 draft 文章，避免草稿元数据被渲染成指向不存在页面的死链卡片
+const IS_PROD = import.meta.env?.PROD ?? false;
+
 function normalizeContentPath(value) {
 	const contentPath = value
 		.trim()
@@ -134,7 +138,7 @@ function collectPostMetas() {
 				continue;
 			}
 			const meta = readMetaFile(fullPath);
-			if (meta) {
+			if (meta && !(IS_PROD && meta.data?.draft === true)) {
 				metas.push(meta);
 			}
 		}

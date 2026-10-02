@@ -27,6 +27,12 @@ export class TOCManager {
 	private contentId: string;
 	private indicatorId: string;
 	private scrollOffset: number;
+	// 目录栏 DOM 跨换页持久存在，click 监听必须可整体撤销，
+	// 否则重访同一文章时 attach()/render() 会一层层叠加监听器
+	private clickAbort = new AbortController();
+	private readonly handleItemClick = (event: Event): void => {
+		this.handleClick(event);
+	};
 
 	constructor(config: TOCConfig) {
 		this.contentId = config.contentId;
@@ -349,8 +355,13 @@ export class TOCManager {
 	 * 绑定点击事件
 	 */
 	public bindClickEvents(): void {
+		// 先撤销上一轮监听再重绑，同一批锚点重复 attach 也不会叠加
+		this.clickAbort.abort();
+		this.clickAbort = new AbortController();
 		this.tocItems.forEach((item) => {
-			item.addEventListener("click", this.handleClick.bind(this));
+			item.addEventListener("click", this.handleItemClick, {
+				signal: this.clickAbort.signal,
+			});
 		});
 	}
 
@@ -366,6 +377,7 @@ export class TOCManager {
 			clearTimeout(this.scrollTimeout);
 			this.scrollTimeout = null;
 		}
+		this.clickAbort.abort();
 	}
 
 	/**

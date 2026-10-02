@@ -27,9 +27,14 @@ async function fetchBilibiliByType(
 		`${BILIBILI_API}?type=${type}&vmid=${uid}&pn=1&ps=${PAGE_SIZE}`,
 	);
 	const firstJson = await firstRes.json();
-	if (firstJson.code !== 0 || !firstJson.data?.list?.length) return items;
-
-	items.push(...firstJson.data.list);
+	if (firstJson.code !== 0) {
+		// 业务错误码（账号不存在 / 列表私有 / 风控拦截等）：抛出让页面层
+		// 显示失败提示，而不是静默返回空列表
+		throw new Error(
+			`Bilibili API error ${firstJson.code}: ${firstJson.message ?? ""}`,
+		);
+	}
+	if (firstJson.data?.list?.length) items.push(...firstJson.data.list);
 	const total = firstJson.data.total || items.length;
 	const totalPages = Math.ceil(total / PAGE_SIZE);
 

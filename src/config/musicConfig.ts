@@ -58,7 +58,8 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 				name: "Departures 〜あなたにおくるアイの歌〜",
 				artist: "EGOIST",
 				url: "/assets/music/Departures 〜あなたにおくるアイの歌〜-EGOIST.mp3",
-				cover: "/assets/music/cover/Departures 〜あなたにおくるアイの歌〜-EGOIST.jpg",
+				cover:
+					"/assets/music/cover/Departures 〜あなたにおくるアイの歌〜-EGOIST.jpg",
 				lrc: "/assets/music/lrc/Departures 〜あなたにおくるアイの歌〜-EGOIST.lrc",
 			},
 			{

@@ -1,4 +1,5 @@
 <script lang="ts">
+import DOMPurify from "dompurify";
 import { onMount, tick } from "svelte";
 import ClientPagination from "@/components/common/ClientPagination.svelte";
 import { formatTimezoneOffset } from "@/utils/date-utils";
@@ -201,7 +202,9 @@ function createItem(entry: DynamicData) {
 	const content = root.querySelector<HTMLElement>("[data-dynamic-content]");
 	if (content) {
 		content.id = `${anchorId}-content`;
-		content.innerHTML = entry.html;
+		// 动态 html 可能来自 Memos 多用户实例或第三方 apiUrl（marked 也不做净化），
+		// 注入 innerHTML 前必须过 DOMPurify，剥掉事件属性 / script / iframe 等
+		content.innerHTML = DOMPurify.sanitize(entry.html);
 		for (const image of entry.images) {
 			const element = document.createElement("img");
 			element.src = image.src;

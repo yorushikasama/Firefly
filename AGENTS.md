@@ -13,7 +13,7 @@ Use `pnpm`; the `preinstall` script enforces it.
 - `pnpm type-check`: run TypeScript with `--noEmit`.
 - `pnpm format`: format `src` with Biome.
 - `pnpm lint`: run Biome checks and safe fixes on `src`.
-- `pnpm build`: generate icons, LQIPs, the Astro build, font subsets, and Pagefind search output in `dist`.
+- `pnpm build`: run the Astro build, then generate LQIPs, font subsets, inline-script minification, and Pagefind search output in `dist` (icons are a handwritten snapshot, not generated).
 - `pnpm preview`: preview the production build locally.
 - `pnpm new-post`: scaffold a new content post.
 

@@ -116,6 +116,8 @@ export async function renderFeedEntries(
 		if (post.data.password) {
 			entries.push({
 				...base,
+				// 摘要视为受保护内容：RSS/Atom 只保留标题，防止未解锁内容被枚举
+				description: "",
 				content: includeContent ? i18n(I18nKey.passwordProtectedRss) : "",
 				isPasswordProtected: true,
 			});

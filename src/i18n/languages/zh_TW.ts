@@ -241,6 +241,9 @@ export const zh_TW: Translation = {
 	[Key.bilibiliNotConfigured]: "未配置嗶哩嗶哩資料來源",
 	[Key.bilibiliNotConfiguredDesc]:
 		"請在 src/config/siteConfig.ts 中配置 bilibili.uid",
+	[Key.bilibiliFetchError]: "嗶哩嗶哩資料拉取失敗",
+	[Key.bilibiliFetchErrorDesc]:
+		"構建時從 Bilibili API 獲取資料失敗。請確認 UID 設定正確且帳號列表為公開狀態。",
 
 	// 追番 - 公共組件
 	[Key.animeTotal]: "總追番",

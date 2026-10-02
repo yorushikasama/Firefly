@@ -239,6 +239,9 @@ export const zh_CN: Translation = {
 	[Key.bilibiliNotConfigured]: "未配置哔哩哔哩数据源",
 	[Key.bilibiliNotConfiguredDesc]:
 		"请在 src/config/siteConfig.ts 中配置 bilibili.uid",
+	[Key.bilibiliFetchError]: "哔哩哔哩数据拉取失败",
+	[Key.bilibiliFetchErrorDesc]:
+		"构建时从 Bilibili API 获取数据失败。请确认 UID 配置正确且账号列表为公开状态。",
 
 	// 追番 - 公共组件
 	[Key.animeTotal]: "总追番",

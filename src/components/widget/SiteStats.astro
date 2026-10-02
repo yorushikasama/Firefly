@@ -184,8 +184,8 @@ const stats = [
   // 防止 Swup 切页重跑脚本时重复注册监听器
   if (!window.__siteStatsInit) {
     window.__siteStatsInit = true;
-    // 页面切换时重新更新
-    document.addEventListener("swup:contentReplaced", () => {
+    // 页面切换时重新更新（@swup/astro 在每次换页的 page:view 上派发 astro:page-load）
+    document.addEventListener("astro:page-load", () => {
       setTimeout(updateDynamicStats, 100);
     });
   }

@@ -245,6 +245,9 @@ export const ru: Translation = {
 	[Key.bilibiliNotConfigured]: "Источник данных Bilibili не настроен",
 	[Key.bilibiliNotConfiguredDesc]:
 		"Настройте bilibili.uid в src/config/siteConfig.ts",
+	[Key.bilibiliFetchError]: "Ошибка загрузки данных Bilibili",
+	[Key.bilibiliFetchErrorDesc]:
+		"Не удалось загрузить данные из Bilibili API при сборке. Проверьте правильность UID и убедитесь, что список открыт.",
 
 	// Отслеживание аниме - общие компоненты
 	[Key.animeTotal]: "Всего",

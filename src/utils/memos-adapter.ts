@@ -151,7 +151,8 @@ export async function fetchMemos(
 
 	const promise = fetchMemosInternal(memosApiUrl, options);
 	pendingRequests.set(cacheKey, promise);
-	promise.finally(() => pendingRequests.delete(cacheKey));
+	// 清理 promise 的拒绝需自行接住，否则请求失败时报 UnhandledPromiseRejection
+	promise.catch(() => {}).finally(() => pendingRequests.delete(cacheKey));
 	return promise;
 }
 

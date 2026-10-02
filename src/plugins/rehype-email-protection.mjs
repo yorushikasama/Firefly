@@ -13,9 +13,14 @@ import { visit } from "unist-util-visit";
 export default function rehypeEmailProtection(options = {}) {
 	const { method = "base64" } = options;
 
-	// Base64 编码函数
+	// Base64 编码函数（btoa 仅接受 Latin1，先转 UTF-8 字节再编码，中文 subject 才不会炸）
 	const base64Encode = (str) => {
-		return btoa(str);
+		const bytes = new TextEncoder().encode(str);
+		let binary = "";
+		bytes.forEach((byte) => {
+			binary += String.fromCharCode(byte);
+		});
+		return btoa(binary);
 	};
 
 	// ROT13 编码函数
@@ -47,13 +52,13 @@ export default function rehypeEmailProtection(options = {}) {
       `;
 		}
 		return `
-      const decodedEmail = atob(encodedEmail);
+      const decodedEmail = new TextDecoder().decode(
+        Uint8Array.from(atob(encodedEmail), (c) => c.charCodeAt(0)),
+      );
     `;
 	};
 
 	return (tree) => {
-		let hasEmailLinks = false;
-
 		visit(tree, "element", (node, index, parent) => {
 			// 只处理 a 元素
 			if (node.tagName !== "a") {
@@ -65,8 +70,6 @@ export default function rehypeEmailProtection(options = {}) {
 			if (!href?.startsWith("mailto:")) {
 				return;
 			}
-
-			hasEmailLinks = true;
 
 			// 提取邮箱地址
 			const email = href.replace("mailto:", "");
@@ -103,27 +106,5 @@ export default function rehypeEmailProtection(options = {}) {
 				parent.children[index] = protectedLink;
 			}
 		});
-
-		// 如果页面中有邮箱链接，添加样式
-		if (hasEmailLinks) {
-			visit(tree, "element", (node) => {
-				if (node.tagName === "head") {
-					const style = h(
-						"style",
-						`
-            a[data-encoded-email] {
-              cursor: pointer;
-              text-decoration: underline;
-              color: inherit;
-            }
-            a[data-encoded-email]:hover {
-              text-decoration: underline;
-            }
-          `.trim(),
-					);
-					node.children.push(style);
-				}
-			});
-		}
 	};
 }

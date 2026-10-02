@@ -44,7 +44,9 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
 		img.crossOrigin = "anonymous";
 		img.onload = () => resolve(img);
 		img.onerror = () => {
-			if (!src.includes("images.weserv.nl")) {
+			// 仅对远程图片走 weserv 代理回退：本地/相对路径发给第三方没有意义，
+			// 还会把站内路径外泄
+			if (/^https?:\/\//i.test(src) && !src.includes("images.weserv.nl")) {
 				const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(src)}&output=png`;
 				const proxyImg = new Image();
 				proxyImg.crossOrigin = "anonymous";

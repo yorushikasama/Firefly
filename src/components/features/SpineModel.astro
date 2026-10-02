@@ -107,6 +107,12 @@ import { url } from "@/utils/url-utils";
   function cleanupSpineModel() {
     console.log("🧹 Cleaning up existing Spine model...");
 
+    // 清理待机动画循环定时器
+    if (window.__spineIdleTimer) {
+      clearInterval(window.__spineIdleTimer);
+      window.__spineIdleTimer = null;
+    }
+
     // 清理消息显示（使用公共组件）
     if (window.clearModelMessage) {
       window.clearModelMessage();
@@ -372,7 +378,8 @@ import { url } from "@/utils/url-utils";
 
               // 设置待机动画循环（仅在至少两个有效待机动画时启用）
               if (validIdleAnims.length > 1) {
-                setInterval(() => {
+                // 存下定时器 id，cleanupSpineModel 时一并清除，避免销毁模型后仍触发动画
+                window.__spineIdleTimer = setInterval(() => {
                   const randomIdle = pickRandom(validIdleAnims);
                   safeSetAnimation(randomIdle, true);
                 }, spineModelConfig.interactive.idleInterval);
@@ -419,28 +426,34 @@ import { url } from "@/utils/url-utils";
     }
   }
 
-  // 监听页面卸载事件，清理资源
-  window.addEventListener("beforeunload", cleanupSpineModel);
+  // 以下四个全局注册在脚本重跑时会重复执行（scripts-plugin 每次换页都重跑本脚本），
+  // 必须用全局守卫包住，否则监听器随导航次数无界累积
+  if (!window.__spineModelListeners) {
+    window.__spineModelListeners = true;
 
-  // 监听 Swup 页面切换事件（如果使用了 Swup）
-  if (typeof window.swup !== "undefined" && window.swup.hooks) {
-    window.swup.hooks.on("content:replace", () => {
-      // 只更新响应式显示，不重新创建模型
+    // 监听页面卸载事件，清理资源
+    window.addEventListener("beforeunload", cleanupSpineModel);
+
+    // 监听 Swup 页面切换事件（如果使用了 Swup）
+    if (typeof window.swup !== "undefined" && window.swup.hooks) {
+      window.swup.hooks.on("content:replace", () => {
+        // 只更新响应式显示，不重新创建模型
+        setTimeout(() => {
+          updateResponsiveDisplay();
+        }, 100);
+      });
+    }
+
+    // 监听 popstate 事件（浏览器前进后退）
+    window.addEventListener("popstate", () => {
       setTimeout(() => {
         updateResponsiveDisplay();
       }, 100);
     });
+
+    // 监听窗口大小变化
+    window.addEventListener("resize", updateResponsiveDisplay);
   }
-
-  // 监听 popstate 事件（浏览器前进后退）
-  window.addEventListener("popstate", () => {
-    setTimeout(() => {
-      updateResponsiveDisplay();
-    }, 100);
-  });
-
-  // 监听窗口大小变化
-  window.addEventListener("resize", updateResponsiveDisplay);
 
   // 页面加载完成后初始化（只初始化一次）
   if (document.readyState === "loading") {

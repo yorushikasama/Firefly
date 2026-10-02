@@ -41,55 +41,47 @@ const config = {
     };
   }
 
+  // CDN 加载失败时的重试上限（20 次 × 500ms ≈ 10 秒后放弃，避免无限定时器循环）
+  var twikooRetryCount = 0;
+
   // 初始化 Twikoo
   function initTwikoo() {
-    if (typeof twikoo !== "undefined") {
-      const commentEl = document.getElementById("tcomment");
-      if (commentEl) {
-        commentEl.innerHTML = "";
-
-        const dynamicConfig = createTwikooConfig();
-        console.log("[Twikoo] Init config:", dynamicConfig);
-
-        twikoo
-          .init(dynamicConfig)
-          .then(() => {
-            console.log("[Twikoo] Init complete");
-          })
-          .catch((error) => {
-            console.error("[Twikoo] Init failed:", error);
-          });
+    if (typeof twikoo === "undefined") {
+      if (twikooRetryCount++ < 20) {
+        setTimeout(initTwikoo, 500);
+      } else {
+        console.error("[Twikoo] script failed to load, giving up after retries");
       }
-    } else {
-      // 如果 Twikoo 未加载，稍后重试
-      setTimeout(initTwikoo, 500);
+      return;
     }
-  }
-
-  // 页面加载时初始化
-  document.addEventListener("DOMContentLoaded", initTwikoo);
-
-  // Swup 页面切换后重新初始化
-  if (window.swup && window.swup.hooks) {
-    window.swup.hooks.on("content:replace", function () {
-      setTimeout(initTwikoo, 200);
-    });
-  } else {
-    document.addEventListener("swup:enable", function () {
-      if (window.swup && window.swup.hooks) {
-        window.swup.hooks.on("content:replace", function () {
-          setTimeout(initTwikoo, 200);
-        });
-      }
-    });
-  }
-
-  // 自定义事件监听
-  document.addEventListener("firefly:page:loaded", function () {
     const commentEl = document.getElementById("tcomment");
-    if (commentEl) {
-      console.log("[Twikoo] Re-initializing via custom event");
-      initTwikoo();
-    }
-  });
+    if (!commentEl) return;
+
+    // 同一文章只初始化一次：DOMContentLoaded / firefly:page:loaded /
+    // 脚本换页重跑可能命中同一容器，重复 init 会互相清空渲染造成闪烁
+    const currentPath = getCurrentPath();
+    if (commentEl.dataset.twikooInit === currentPath) return;
+    commentEl.dataset.twikooInit = currentPath;
+
+    commentEl.innerHTML = "";
+    twikoo
+      .init(createTwikooConfig())
+      .then(() => {
+        console.log("[Twikoo] Init complete");
+      })
+      .catch((error) => {
+        console.error("[Twikoo] Init failed:", error);
+      });
+  }
+
+  // 防止 Swup 换页重跑脚本时重复注册全局监听器：scripts-plugin 每次换页都会
+  // 重跑本脚本，而注册到 document 上的监听器永不销毁，累积后每进一个评论页
+  // 会并发初始化 N 次
+  if (!window.__twikooInit) {
+    window.__twikooInit = true;
+    // 页面加载时初始化
+    document.addEventListener("DOMContentLoaded", initTwikoo);
+    // Swup 换页后由 swup-transitions 派发（仅当页面存在 #tcomment 时触发）
+    document.addEventListener("firefly:page:loaded", initTwikoo);
+  }
 </script>

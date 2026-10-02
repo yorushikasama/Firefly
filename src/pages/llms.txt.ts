@@ -110,7 +110,8 @@ export const GET: APIRoute = async ({ site }) => {
 	lines.push("", "## Recent Posts");
 	for (const post of recentPosts) {
 		const link = abs(url(`/posts/${post.id}/`));
-		const desc = post.data.description || "";
+		// 密码保护文章的摘要视为受保护内容，不进公开文本端点
+		const desc = post.data.password ? "" : post.data.description || "";
 		lines.push(
 			desc
 				? `- [${post.data.title}](${link}): ${desc}`

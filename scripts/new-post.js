@@ -38,6 +38,11 @@ if (slug.endsWith("/index")) {
 	slug = slug.slice(0, -"/index".length);
 }
 
+// 标题用去扩展名、去 /index 后的文件名；YAML 双引号包裹并转义，
+// 避免文件名里的冒号、引号等字符生成坏 frontmatter
+const displayTitle = slug;
+const yamlSafeTitle = displayTitle.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
 // Convert Chinese characters to pinyin, keep other chars as-is
 slug = slug
 	.split("/")
@@ -80,7 +85,7 @@ if (!fs.existsSync(dirPath)) {
 }
 
 const content = `---
-title: ${args[0]}
+title: "${yamlSafeTitle}"
 published: ${getDate()}
 description: ''
 image: ''

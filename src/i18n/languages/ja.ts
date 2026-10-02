@@ -244,6 +244,9 @@ export const ja: Translation = {
 	[Key.bilibiliNotConfigured]: "Bilibiliデータソースが未設定",
 	[Key.bilibiliNotConfiguredDesc]:
 		"src/config/siteConfig.ts で bilibili.uid を設定してください",
+	[Key.bilibiliFetchError]: "Bilibili データ取得失敗",
+	[Key.bilibiliFetchErrorDesc]:
+		"ビルド時に Bilibili API からのデータ取得に失敗しました。UID の設定を確認し、アカウントが公開であることを確認してください。",
 
 	// 追番 - 共通コンポーネント
 	[Key.animeTotal]: "合計",

@@ -42,9 +42,16 @@ const config = {
 
         updateTheme();
 
+        // 脚本随 swup 换页重跑，observer 挂在 documentElement 上永不随 DOM 销毁，
+        // 必须先 disconnect 旧的（同 Giscus 的 window 级守卫），否则每进一次评论页
+        // 就多一个观察器，且闭包把整个旧 Artalk 实例钉在内存里
+        if (window.__artalkThemeObserver) {
+            window.__artalkThemeObserver.disconnect();
+        }
         const observer = new MutationObserver((_mutations) => {
             updateTheme();
         });
+        window.__artalkThemeObserver = observer;
 
         observer.observe(document.documentElement, {
             attributes: true,

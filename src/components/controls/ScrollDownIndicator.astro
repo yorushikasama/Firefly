@@ -12,8 +12,9 @@ import { Icon } from "astro-icon/components";
 
 <script is:inline>
   (function () {
-    // 防止重复初始化（Swup 页面切换时可能重复执行）
-    if (window.__scrollDownIndicatorInit) return;
+    // window 级监听器只注册一次；显隐/定位计算每次脚本重跑（换页换入新元素）都要执行，
+    // 否则新元素的 hide 类/内联 bottom 不会初始化
+    var firstRun = !window.__scrollDownIndicatorInit;
     window.__scrollDownIndicatorInit = true;
 
     // 移动端基准：目标让指示器底部距可见视口底约 6.5rem（≈104px）。
@@ -60,15 +61,17 @@ import { Icon } from "astro-icon/components";
       );
     }
 
-    window.addEventListener("scroll", updateVisibility, { passive: true });
-    window.addEventListener("resize", updatePosition, { passive: true });
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", updatePosition, { passive: true });
-      window.visualViewport.addEventListener("scroll", updatePosition, { passive: true });
+    if (firstRun) {
+      window.addEventListener("scroll", updateVisibility, { passive: true });
+      window.addEventListener("resize", updatePosition, { passive: true });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", updatePosition, { passive: true });
+        window.visualViewport.addEventListener("scroll", updatePosition, { passive: true });
+      }
+      // 模式切换时 wrapper 高度会过渡（65vh↔100lvh），过渡结束后重算底部遮挡
+      var wrapper = document.getElementById("wallpaper-wrapper");
+      if (wrapper) wrapper.addEventListener("transitionend", updatePosition);
     }
-    // 模式切换时 wrapper 高度会过渡（65vh↔100lvh），过渡结束后重算底部遮挡
-    var wrapper = document.getElementById("wallpaper-wrapper");
-    if (wrapper) wrapper.addEventListener("transitionend", updatePosition);
 
     updateVisibility();
     updatePosition();

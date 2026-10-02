@@ -1,6 +1,6 @@
 /**
  * 隔离引用了不存在图片的文章
- * 把这些文章移到 src/content/posts/_quarantine/
+ * 把这些文章移到 src/content/_quarantine/
  * Astro 不会构建 _quarantine 里的文章
  */
 

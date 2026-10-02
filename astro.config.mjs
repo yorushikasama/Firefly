@@ -4,6 +4,7 @@ import { unified } from "@astrojs/markdown-remark";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import svelte from "@astrojs/svelte";
+import { isPageEnabledByEnv } from "./src/utils/page-toggle-utils";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import swup from "@swup/astro";
@@ -251,7 +252,9 @@ export default defineConfig({
 				if (pathname === "/guestbook/" && !siteConfig.pages.guestbook) {
 					return false;
 				}
-				if (pathname === "/booknav/" && !siteConfig.pages.booknav) {
+				// 书签导航 / 打赏页已下线：走环境变量开关（默认关），与页面组件的守卫保持一致，
+				// 避免「页面已启用但 sitemap 不收录」或「页面已下线但 sitemap 仍收录」的错位
+				if (pathname === "/booknav/" && !isPageEnabledByEnv("booknav", false)) {
 					return false;
 				}
 				if (pathname === "/bilibili/" && !siteConfig.pages.bilibili) {
@@ -266,16 +269,21 @@ export default defineConfig({
 				if (pathname === "/myanimelist/" && !siteConfig.pages.mal) {
 					return false;
 				}
-				// 动态页评论嵌入页：评论关闭时重定向到 /404/，不应进 sitemap
+				// 资源推荐页：关闭时页面是 404 跳转，不应进 sitemap
+				if (pathname === "/resources/" && !siteConfig.pages.resources) {
+					return false;
+				}
+				// 动态页评论嵌入页：页面关闭或评论关闭时重定向到 /404/，不应进 sitemap
 				if (
 					pathname === "/dynamic/comments/" &&
-					(dynamicConfig.showComment === false ||
+					(!siteConfig.pages.dynamic ||
+						dynamicConfig.showComment === false ||
 						!commentConfig.type ||
 						commentConfig.type === "none")
 				) {
 					return false;
 				}
-				if (pathname === "/sponsor/" && !siteConfig.pages.sponsor) {
+				if (pathname === "/sponsor/" && !isPageEnabledByEnv("sponsor", false)) {
 					return false;
 				}
 				return true;

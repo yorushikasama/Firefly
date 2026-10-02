@@ -62,9 +62,7 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { Content, headings } = await render(entry);
-
-const { remarkPluginFrontmatter } = await render(entry);
+const { Content, headings, remarkPluginFrontmatter } = await render(entry);
 
 const bannerPostMeta = {
 	title: entry.data.title,
@@ -236,7 +234,7 @@ const seriesData = await getSeriesPosts(entry);
     is:inline
     slot="head"
     type="application/ld+json"
-    set:html={JSON.stringify(jsonLd)}
+    set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")}
   />
   <div
     class="flex w-full rounded-(--radius-large) overflow-hidden relative mb-4"

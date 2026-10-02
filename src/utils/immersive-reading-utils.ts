@@ -109,10 +109,6 @@ function enterImmersiveReading(): void {
 
 	// 类 PDF：回到文章顶部开始阅读
 	window.scrollTo({ top: 0, behavior: "instant" });
-
-	document.dispatchEvent(
-		new CustomEvent("immersiveReadingChange", { detail: { on: true } }),
-	);
 }
 
 function exitImmersiveReading(): void {
@@ -142,10 +138,6 @@ function exitImmersiveReading(): void {
 
 	// 恢复进入前的滚动位置
 	window.scrollTo({ top: IR.prevScroll || 0, behavior: "instant" });
-
-	document.dispatchEvent(
-		new CustomEvent("immersiveReadingChange", { detail: { on: false } }),
-	);
 }
 
 function toggleImmersiveReading(): void {
@@ -172,6 +164,9 @@ function toggleImmersiveTOC(): void {
 function bindImmersiveTOCNav(): void {
 	const tocContent = document.getElementById("immersive-toc-content");
 	if (!tocContent) return;
+	// 目录栏跨换页持久存在，只绑定一次 capture 监听
+	if (tocContent.dataset.irNavBound) return;
+	tocContent.dataset.irNavBound = "true";
 	tocContent.addEventListener(
 		"click",
 		(e) => {
@@ -217,9 +212,6 @@ export function initImmersiveReading(): void {
 	if (!window.__immersiveReadingInit) {
 		window.__immersiveReadingInit = true;
 
-		document.addEventListener("swup:contentReplaced", () => {
-			setTimeout(initImmersiveReading, 100);
-		});
 		document.addEventListener("astro:page-load", () => {
 			setTimeout(initImmersiveReading, 100);
 		});

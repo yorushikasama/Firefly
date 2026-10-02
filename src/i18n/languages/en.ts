@@ -245,6 +245,9 @@ export const en: Translation = {
 	[Key.bilibiliNotConfigured]: "Bilibili not configured",
 	[Key.bilibiliNotConfiguredDesc]:
 		"Configure bilibili.uid in src/config/siteConfig.ts",
+	[Key.bilibiliFetchError]: "Bilibili Data Fetch Failed",
+	[Key.bilibiliFetchErrorDesc]:
+		"Failed to fetch data from the Bilibili API during build. Please check the UID configuration and make sure the account is public.",
 
 	// Anime Tracking - Shared components
 	[Key.animeTotal]: "Total",

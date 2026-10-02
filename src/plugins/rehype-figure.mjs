@@ -60,5 +60,23 @@ export default function rehypeFigure() {
 				parent.children[index] = centerFigure;
 			}
 		});
+
+		// <p> 只允许短语内容，center 属于会提前闭合段落的元素，
+		// 原位替换会产出非法嵌套 <p><center><figure>。
+		// 独立成段的图片（<p> 里只有一张图）此时整段上提为 <center><figure>；
+		// 与行内内容混排的段落保持原样，避免丢掉段落里的其他文本
+		visit(tree, "element", (node, index, parent) => {
+			if (node.tagName !== "p" || !parent || typeof index !== "number") {
+				return;
+			}
+			const only = node.children[0];
+			if (
+				node.children.length === 1 &&
+				only?.type === "element" &&
+				only.tagName === "center"
+			) {
+				parent.children[index] = only;
+			}
+		});
 	};
 }

@@ -240,6 +240,8 @@ enum I18nKey {
 	bilibiliSubtitle = "bilibiliSubtitle",
 	bilibiliNotConfigured = "bilibiliNotConfigured",
 	bilibiliNotConfiguredDesc = "bilibiliNotConfiguredDesc",
+	bilibiliFetchError = "bilibiliFetchError",
+	bilibiliFetchErrorDesc = "bilibiliFetchErrorDesc",
 
 	// 追番 - 公共组件
 	animeTotal = "animeTotal",

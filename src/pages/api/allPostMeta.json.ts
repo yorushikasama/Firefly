@@ -7,7 +7,8 @@ export async function GET(): Promise<Response> {
 		.map((post) => ({
 			id: post.id,
 			title: post.data.title,
-			description: post.data.description,
+			// 密码保护文章的摘要视为受保护内容，不进公开 JSON 端点
+			description: post.data.password ? "" : post.data.description,
 			published: post.data.published.getTime(),
 			category: post.data.category || "",
 			password: !!post.data.password,

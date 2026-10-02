@@ -146,12 +146,14 @@ const postUrlPrefix = url("/posts/");
       const yearsSet = new Set();
       allPostsData.forEach(post => {
         const date = new Date(post.published);
-        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        // frontmatter 纯日期解析为 UTC 午夜，键必须按 UTC 取，否则 UTC 以西的
+        // 访客会把文章归到前一天（月初文章甚至落进上一个月）
+        const dateKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
         if (!postDateMap[dateKey]) {
           postDateMap[dateKey] = [];
         }
         postDateMap[dateKey].push({ id: post.id, title: post.title, published: post.published });
-        yearsSet.add(date.getFullYear());
+        yearsSet.add(date.getUTCFullYear());
       });
       
       availableYears = Array.from(yearsSet).sort((a, b) => b - a);
@@ -181,9 +183,10 @@ const postUrlPrefix = url("/posts/");
     const heatmapData = Array.from({ length: 12 }, () => [0, 0, 0, 0]);
     allPostsData.forEach(post => {
       const date = new Date(post.published);
-      if (date.getFullYear() !== displayYear) return;
-      const month = date.getMonth();
-      const day = date.getDate();
+      // 与 postDateMap 的 UTC 键同口径，避免 UTC 以西访客把文章归错年月
+      if (date.getUTCFullYear() !== displayYear) return;
+      const month = date.getUTCMonth();
+      const day = date.getUTCDate();
       const week = Math.min(Math.floor((day - 1) / 7), 3); // 0-3
       heatmapData[month][week]++;
     });
@@ -382,10 +385,10 @@ const postUrlPrefix = url("/posts/");
       `;
     }).join('');
     
-    // 获取当月所有文章
+    // 获取当月所有文章（按 UTC 取年月，与 postDateMap 的 UTC 键一致）
     const currentMonthPosts = allPostsData.filter(post => {
       const date = new Date(post.published);
-      return date.getFullYear() === currentYear && date.getMonth() === currentMonth;
+      return date.getUTCFullYear() === currentYear && date.getUTCMonth() === currentMonth;
     });
     
     // 显示当月文章列表
@@ -403,8 +406,9 @@ const postUrlPrefix = url("/posts/");
     const monthsWithPosts = new Set();
     allPostsData.forEach(post => {
         const date = new Date(post.published);
-        if (date.getFullYear() === displayYear) {
-            monthsWithPosts.add(date.getMonth());
+        // UTC 口径，与 postDateMap / 年份列表一致
+        if (date.getUTCFullYear() === displayYear) {
+            monthsWithPosts.add(date.getUTCMonth());
         }
     });
 
@@ -460,6 +464,18 @@ const postUrlPrefix = url("/posts/");
     });
   }
   
+  // 文章标题是作者可控数据，但经 innerHTML 渲染时仍需转义，
+  // 避免标题中的 <、>、引号破坏列表结构（如含行内代码的标题）
+  function escapePostTitle(title) {
+    return String(title).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[c]);
+  }
+
   // 显示当月所有文章
   function showMonthlyPosts(currentMonthPosts) {
     const postsWrapper = document.getElementById('calendar-posts');
@@ -473,10 +489,11 @@ const postUrlPrefix = url("/posts/");
     if (postsList) {
       postsList.innerHTML = currentMonthPosts.map(post => {
         const date = new Date(post.published);
-        const dateStr = `${date.getMonth() + 1}-${date.getDate()}`;
+        // frontmatter 纯日期解析为 UTC 午夜，统一按 UTC 取日期，避免 UTC 以西的访客看到日期前移一天
+        const dateStr = `${date.getUTCMonth() + 1}-${date.getUTCDate()}`;
         return `
         <a href="${postUrlPrefix}${post.id}/" class="flex justify-between items-center text-sm text-neutral-700 dark:text-neutral-300 hover:text-(--primary) dark:hover:text-(--primary) transition-colors px-2 py-1 rounded-sm hover:bg-(--btn-plain-bg-hover)">
-          <span class="truncate">${post.title}</span>
+          <span class="truncate">${escapePostTitle(post.title)}</span>
           <span class="text-xs text-neutral-500 dark:text-neutral-400 ml-2 whitespace-nowrap">${dateStr}</span>
         </a>
       `}).join('');
@@ -533,10 +550,11 @@ const postUrlPrefix = url("/posts/");
           // 渲染文章列表
           postsList.innerHTML = posts.map(post => {
             const date = new Date(post.published);
-            const dateStr = `${date.getMonth() + 1}-${date.getDate()}`;
+            // 统一按 UTC 取日期，与 postDateMap 的 UTC 键一致
+            const dateStr = `${date.getUTCMonth() + 1}-${date.getUTCDate()}`;
             return `
             <a href="${postUrlPrefix}${post.id}/" class="flex justify-between items-center text-sm text-neutral-700 dark:text-neutral-300 hover:text-(--primary) dark:hover:text-(--primary) transition-colors px-2 py-1 rounded-sm hover:bg-(--btn-plain-bg-hover)">
-              <span class="truncate">${post.title}</span>
+              <span class="truncate">${escapePostTitle(post.title)}</span>
               <span class="text-xs text-neutral-500 dark:text-neutral-400 ml-2 whitespace-nowrap">${dateStr}</span>
             </a>
           `}).join('');
@@ -610,8 +628,8 @@ const postUrlPrefix = url("/posts/");
   // 防止 Swup 切页重跑脚本时重复注册监听器（此脚本的 data-swup-ignore-script 在 define:vars 构建时可能丢失）
   if (!window.__calendarInit) {
     window.__calendarInit = true;
-    // 页面切换时重新渲染
-    document.addEventListener("swup:contentReplaced", () => {
+    // 页面切换时重新渲染（@swup/astro 在每次换页的 page:view 上派发 astro:page-load）
+    document.addEventListener("astro:page-load", () => {
       setTimeout(initCalendar, 100);
     });
   }

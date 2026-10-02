@@ -120,12 +120,17 @@ export function injectTheme(source, themeName) {
 		return source;
 	}
 	const themeDirective = `!theme ${themeName.trim()}`;
-	const startumlMatch = source.match(/^[^\S\r\n]*@startuml[^\r\n]*\r?\n?/);
+	// 围栏内首行为空行时 @startuml 不在开头，先剥掉前导空行再匹配锚点，
+	// 否则主题指令会被插到 @startuml 之前
+	const trimmedSource = source.replace(/^[\t ]*(?:\r?\n)+/, "");
+	const startumlMatch = trimmedSource.match(
+		/^[^\S\r\n]*@startuml[^\r\n]*\r?\n?/,
+	);
 	if (startumlMatch) {
 		const insertAt = startumlMatch.index + startumlMatch[0].length;
-		return `${source.slice(0, insertAt)}${themeDirective}\n${source.slice(insertAt)}`;
+		return `${trimmedSource.slice(0, insertAt)}${themeDirective}\n${trimmedSource.slice(insertAt)}`;
 	}
-	return `${themeDirective}\n${source}`;
+	return `${themeDirective}\n${trimmedSource}`;
 }
 
 /**
