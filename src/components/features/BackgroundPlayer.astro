@@ -188,6 +188,13 @@ const tLoadError = i18n(I18nKey.videoLoadError);
 		if (prevBtn) prevBtn.addEventListener("click", function () { switchTrack(prevIndex()); });
 		if (nextBtn) nextBtn.addEventListener("click", function () { switchTrack(pickIndex(currentIndex)); });
 
+		// 音乐播放器开播时暂停背景视频（与音乐互斥，避免同时出声）
+		window.addEventListener("fm:play-state", function (e) {
+			if (e.detail && e.detail.isPlaying && isPlaying) {
+				toggle();
+			}
+		});
+
 		// 切换壁纸模式时停止播放
 		window.addEventListener("wallpaperModeChange", function (e) {
 			if (e.detail && e.detail.mode === "none" && isPlaying) {

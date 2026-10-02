@@ -401,6 +401,17 @@ const managerConfigStr = JSON.stringify({
         }
     });
 
+    // ── 与背景视频互斥（避免两个声音叠在一起）────────────────
+    // 背景视频开播时暂停音乐；fm:play-state / bg-player-state-change
+    // 都只在"开始播放"一侧触发动作，两边不会互相打断形成循环
+    window.addEventListener('bg-player-state-change', function (e) {
+        if (e.detail && e.detail.playing && !audio.paused) {
+            audio.pause();
+            state.isPlaying = false;
+            emit('fm:play-state', { isPlaying: false });
+        }
+    });
+
     // ── Init (idempotent) ────────────────────────────────────
     async function init() {
         if (state.initialized || state.initializing) return;
