@@ -6,9 +6,9 @@ export const profileConfig: ProfileConfig = {
 	// 1. public 目录（以 "/" 开头，不优化）："/assets/images/avatar.webp"
 	// 2. src 目录（不以 "/" 开头，自动优化但会增加构建时间，推荐）："assets/images/avatar.webp"
 	// 3. 远程 URL："https://example.com/avatar.jpg"
-	avatar: "assets/images/D1.png",
+	avatar: "assets/images/D1.avif",
 	// 暗色主题头像
-	avatarDark: "assets/images/D2.png",
+	avatarDark: "assets/images/D2.avif",
 
 	// 名字
 	name: "Yuzuriha Inori",
