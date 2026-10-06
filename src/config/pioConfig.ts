@@ -87,32 +87,26 @@ export const live2dWidgetConfig: Live2DWidgetConfig = {
 	// Live2D 看板娘开关
 	enable: true,
 	// 模型配置，支持单个模型或数组（多模型切换）
-	model: [
-		{
-			// Live2D模型本地文件路径
-			path: "/pio/models/live2d/snow_miku/model.json",
-			// 动作声音音量 范围0~1，默认 0（静音）
-			volume: 0,
-			// 模型缩放比例
-			scale: 1,
-			// X轴偏移，范围 -2~2，正值向右
-			x: 0,
-			// Y轴偏移，范围 -2~2，正值向上
-			y: 0,
-		},
-		{
-			// 外部直连模型
-			path: "https://model.hacxy.cn/cat-black/model.json",
-			volume: 0,
-			scale: 1,
-			x: 0,
-			y: 0,
-		},
-	],
+	model: {
+		// Live2D模型本地文件路径（自制楪祈半身模型，源工程见 D:\live2d）
+		path: "/pio/models/live2d/yuzuriha/yuzuriha.model3.json",
+		// 动作声音音量 范围0~1，默认 0（静音）
+		volume: 0,
+		// 模型缩放比例
+		scale: 1,
+		// X轴偏移，范围 -2~2，正值向右
+		x: 0,
+		// Y轴偏移，范围 -2~2，正值向上
+		y: 0,
+		// PSD 画布中人物实体的占比（中性姿势实测，见模型工程演示页）。
+		// y0 取 0 而非实测的 0.029：给头发物理/待机摆动留出顶部余量，
+		// 否则人物顶缘贴死画布顶，头发会被上边缘裁掉
+		charBox: { x0: 0.202, x1: 0.794, y0: 0, y1: 0.946 },
+	},
 	// 显示位置：bottom-left 或 bottom-right
 	position: "bottom-left" as const,
-	// 画布尺寸（px）
-	size: { width: 200, height: 200 },
+	// 画布尺寸（px）。半身模型偏高，画布拉高避免头顶/裙摆被裁
+	size: { width: 280, height: 340 },
 	// 主题色，用于菜单、状态条等 UI 元素的背景色，默认 'rgba(96,165,250,0.9)'
 	primaryColor: "var(--l2d-msg-bg)",
 	// 入场/退场动画时长（ms）
@@ -139,19 +133,9 @@ export const live2dWidgetConfig: Live2DWidgetConfig = {
 				action: "sleep",
 			},
 			{
-				icon: "mdi:swap-horizontal",
-				label: "切换模型",
-				action: "switchModel",
-			},
-			{
 				icon: "mdi:restore",
 				label: "重置位置",
 				action: "resetPosition",
-			},
-			{
-				icon: "mdi:github",
-				label: "GitHub",
-				action: "github",
 			},
 		],
 		// 菜单对齐方式
@@ -178,6 +162,14 @@ export const live2dWidgetConfig: Live2DWidgetConfig = {
 		offset: {
 			x: 0, // 正值右移，负值左移
 			y: 0, // 正值下移，负值上移
+		},
+		// 打字时驱动嘴型。这个模型没有张口素材（口腔/牙/舌缺失），
+		// ParamMouthOpenY 是对一条 16×7px 墨线的几何插值，幅度调小当
+		// 氛围反馈用，别指望对齐口型
+		typing: {
+			speed: 90, // ms/字
+			minValue: 0.05,
+			maxValue: 0.3,
 		},
 	},
 	// 响应式配置

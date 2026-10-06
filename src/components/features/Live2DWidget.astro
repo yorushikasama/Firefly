@@ -1,4 +1,6 @@
 ---
+import { getIconData, iconToSVG } from "@iconify/utils";
+import mdi from "@iconify-json/mdi/icons.json";
 import { profileGithubUrl } from "@/config";
 import { url } from "@/utils/url-utils";
 
@@ -8,24 +10,26 @@ interface MenuItem {
 	action: string;
 }
 
+interface CharBox {
+	x0: number;
+	x1: number;
+	y0: number;
+	y1: number;
+}
+
+interface ModelItem {
+	path: string;
+	volume?: number;
+	scale?: number;
+	x?: number;
+	y?: number;
+	charBox?: CharBox;
+}
+
 interface Props {
 	config: {
 		enable: boolean;
-		model:
-			| {
-					path: string;
-					volume?: number;
-					scale?: number;
-					x?: number;
-					y?: number;
-			  }
-			| {
-					path: string;
-					volume?: number;
-					scale?: number;
-					x?: number;
-					y?: number;
-			  }[];
+		model: ModelItem | ModelItem[];
 		position?: "bottom-left" | "bottom-right";
 		size?: number | { width: number; height: number };
 		primaryColor?: string;
@@ -75,13 +79,19 @@ const modelConfigs = models.map((m) => ({
 	...((m.x !== undefined || m.y !== undefined) && {
 		offset: [m.x ?? 0, m.y ?? 0],
 	}),
+	...(m.charBox && { charBox: m.charBox }),
 }));
 
-// 序列化菜单配置（只保留 icon, label, action）
+// 序列化菜单配置（icon 在构建期解析成内联 SVG data URI，运行时不再请求
+// api.iconify.design——离线/被墙时图标不会退化成文字，也省去首次闪烁）
 function serializeMenus(menus: Props["config"]["menus"]) {
 	if (!menus) return {};
 	const serialize = (items: MenuItem[]) =>
-		items.map(({ icon, label, action }) => ({ icon, label, action }));
+		items.map(({ icon, label, action }) => ({
+			icon: icon && inlineIcon(icon),
+			label,
+			action,
+		}));
 	const result: {
 		items?: ReturnType<typeof serialize>;
 		extraItems?: ReturnType<typeof serialize>;
@@ -92,14 +102,38 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 	if (menus.align) result.align = menus.align;
 	return result;
 }
+
+// 仅支持 "mdi:名称"；其他集合的图标加进 imports 即可
+function inlineIcon(name: string): string | undefined {
+	const [prefix, iconName] = name.split(":");
+	if (prefix !== "mdi" || !iconName) return undefined;
+	const data = getIconData(mdi as never, iconName);
+	if (!data) return undefined;
+	const { attributes, body } = iconToSVG(data, {});
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" ${Object.entries(
+		attributes,
+	)
+		.map(([k, v]) => `${k}="${String(v)}"`)
+		.join(" ")}>${body}</svg>`;
+	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+const size =
+	typeof config.size === "number"
+		? { width: config.size, height: config.size }
+		: (config.size ?? { width: 300, height: 300 });
 ---
+
+<!-- 官方 Cubism Core：pixi-live2d-display 只支持 Cubism 3+ 的 moc3，需要
+	window.Live2DCubismCore 先就位（模块脚本 defer 执行，时序上必然晚于它）。
+	自托管在 pio/models/live2d/ 下，prune-pio-assets 会随 Live2D 开关一起裁剪。 -->
+<script is:inline src={url("/pio/models/live2d/live2dcubismcore.min.js")}></script>
 
 <div
 	id="l2d-widget-container"
-	style="position: fixed; z-index: 999;"
+	style={`position: fixed; z-index: 999; width: ${size.width}px; height: ${size.height}px;`}
 	data-models={JSON.stringify(modelConfigs)}
 	data-position={config.position || "bottom-left"}
-	data-size={JSON.stringify(config.size || 300)}
 	data-primary-color={config.primaryColor || ""}
 	data-transition-duration={config.transitionDuration?.toString() || ""}
 	data-transition-type={config.transitionType || ""}
@@ -111,188 +145,769 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 >
 </div>
 
+<style is:global>
+	#l2d-widget-container {
+		/* primaryColor 由脚本注入为 --l2d-primary；无法取值时回退主题默认蓝 */
+		--l2d-primary: rgba(96, 165, 250, 0.9);
+		user-select: none;
+		touch-action: none;
+		font-family: inherit;
+	}
+	#l2d-widget-container .l2d-stage {
+		position: relative;
+		width: 100%;
+		height: 100%;
+	}
+	#l2d-widget-container canvas.l2d-canvas {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		display: block;
+	}
+	/* 入场/退场动画：slide 用位移、fade 用透明度，时长由脚本按配置写入 */
+	#l2d-widget-container.l2d-mode-slide .l2d-stage {
+		transition: transform var(--l2d-dur, 1500ms) ease;
+	}
+	#l2d-widget-container.l2d-mode-slide .l2d-stage.l2d-hidden {
+		transform: translateY(130%);
+	}
+	#l2d-widget-container.l2d-mode-fade .l2d-stage {
+		transition: opacity var(--l2d-dur, 1500ms) ease;
+	}
+	#l2d-widget-container.l2d-mode-fade .l2d-stage.l2d-hidden {
+		opacity: 0;
+	}
+	/* 菜单：悬停看板娘时浮现 */
+	#l2d-widget-container .l2d-menus {
+		position: absolute;
+		top: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	#l2d-widget-container .l2d-menus.l2d-align-left {
+		left: 10px;
+	}
+	#l2d-widget-container .l2d-menus.l2d-align-right {
+		right: 10px;
+	}
+	#l2d-widget-container .l2d-menu-btn {
+		width: 30px;
+		height: 30px;
+		border-radius: 50%;
+		border: none;
+		padding: 6px;
+		background: var(--l2d-primary);
+		color: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		opacity: 0;
+		transition:
+			opacity 0.25s ease,
+			transform 0.15s ease;
+	}
+	#l2d-widget-container:hover .l2d-menu-btn,
+	#l2d-widget-container.l2d-touch .l2d-menu-btn {
+		opacity: 1;
+	}
+	#l2d-widget-container .l2d-menu-btn:hover {
+		transform: scale(1.1);
+	}
+	#l2d-widget-container .l2d-menu-btn img {
+		width: 100%;
+		height: 100%;
+		/* 内联 SVG 用 currentColor 绘制，反白适配彩色圆底 */
+		filter: brightness(0) invert(1);
+	}
+	#l2d-widget-container .l2d-menu-btn span {
+		font-size: 12px;
+		line-height: 1;
+		color: #fff;
+	}
+	/* 提示气泡 */
+	#l2d-widget-container .l2d-tips {
+		position: absolute;
+		left: 50%;
+		top: -34px;
+		transform: translateX(-50%);
+		max-width: 220px;
+		background: var(--l2d-primary);
+		color: #fff;
+		font-size: 13px;
+		line-height: 1.5;
+		padding: 6px 10px;
+		border-radius: 8px;
+		opacity: 0;
+		transition: opacity 0.3s ease;
+		pointer-events: none;
+		white-space: normal;
+		word-break: break-word;
+	}
+	#l2d-widget-container .l2d-tips.l2d-tips-visible {
+		opacity: 1;
+	}
+	/* 状态条（加载/休息/切换中）：挂在 stage 外，模型退场时仍可见 */
+	#l2d-widget-container .l2d-status {
+		position: absolute;
+		left: -14px;
+		top: 50%;
+		transform: translateY(-50%);
+		background: var(--l2d-primary);
+		color: #fff;
+		font-size: 12px;
+		letter-spacing: 2px;
+		padding: 8px 5px;
+		border-radius: 8px;
+		writing-mode: vertical-lr;
+		cursor: pointer;
+		display: none;
+	}
+	#l2d-widget-container .l2d-status.l2d-status-visible {
+		display: block;
+	}
+	#l2d-widget-container .l2d-status.l2d-status-clickable:hover {
+		filter: brightness(1.1);
+	}
+	/* 休眠时容器只留状态条，别再响应拖动 */
+	#l2d-widget-container.l2d-sleeping {
+		pointer-events: none;
+	}
+	#l2d-widget-container.l2d-sleeping .l2d-status {
+		pointer-events: auto;
+	}
+</style>
+
 <script>
-	import { createWidget } from "l2d-widget";
+	import * as PIXI from "pixi.js";
+	import * as PixiLive2d from "pixi-live2d-display/cubism4";
+	import {
+		Live2DModel,
+		MotionPreloadStrategy,
+		MotionPriority,
+	} from "pixi-live2d-display/cubism4";
 
-	// 已创建的 widget 实例，供重复初始化前销毁（HMR / 组件重建）
-	let widgetInstance: { destroy: () => Promise<void> } | null = null;
+	// CubismFramework 运行时有导出但类型声明缺失，经 ID 管理器换取参数句柄用
+	const CubismFramework = (PixiLive2d as any).CubismFramework as {
+		getIdManager: () => { getId: (id: string) => unknown };
+	};
 
-	// 菜单动作映射
+	// 官方 Core（自托管脚本）挂载的全局
+	declare global {
+		interface Window {
+			Live2DCubismCore?: unknown;
+		}
+	}
+
+	// Live2DModel 依赖 PIXI.Ticker 驱动逐帧更新（ESM 引入 pixi.js 时不会自动注册）
+	Live2DModel.registerTicker(PIXI.Ticker);
+
+	interface ModelConfig {
+		path: string;
+		volume?: number;
+		scale?: number;
+		offset?: [number, number];
+		/** PSD 画布中人物实体的占比，声明后按人物包围盒适配 */
+		charBox?: { x0: number; x1: number; y0: number; y1: number };
+	}
+
+	const POSITION_STORAGE_KEY = "live2dPosition";
+	const TAP_THROTTLE_MS = 2500;
+	const TAP_MAX_DURATION_MS = 400;
+	const TAP_MAX_DELTA_PX = 8;
+
+	// 已创建的实例，供重复初始化前销毁（HMR / 组件重建）
+	let instance: { destroy: () => void } | null = null;
 	let currentModelIndex = 0;
-	const menuActions: Record<string, (widget: any) => void> = {
+
+	// 菜单动作映射（action 字符串 → 实际函数）
+	const menuActions: Record<string, () => void> = {
 		home: () => (window.location.href = "/"),
 		scrollToTop: () => window.scrollTo({ top: 0, behavior: "smooth" }),
-		sleep: (widget) => widget.sleep(),
+		sleep: () => controller.sleep(),
 		github: () => {
-			const container = document.getElementById("l2d-widget-container");
-			const githubUrl =
-				container?.dataset.githubUrl || "https://github.com";
-			window.open(githubUrl, "_blank");
+			const el = document.getElementById("l2d-widget-container");
+			window.open(el?.dataset.githubUrl || "https://github.com", "_blank");
 		},
-		switchModel: (widget) => {
-			const container = document.getElementById("l2d-widget-container");
-			const models = JSON.parse(container?.dataset.models || "[]");
-			if (!Array.isArray(models) || models.length === 0) return;
-			currentModelIndex = (currentModelIndex + 1) % models.length;
-			widget.switchModel(currentModelIndex);
-		},
-		resetPosition: () => {
-			const container = document.getElementById("l2d-widget-container");
-			const draggable = JSON.parse(container?.dataset.draggable || "{}");
-			resetWidgetPosition(draggable.savePosition !== false);
-		},
+		switchModel: () =>
+			controller.switchModel((currentModelIndex + 1) % modelConfigs.length),
+		resetPosition: () => controller.resetPosition(),
 	};
 
 	function initWidget() {
 		const container = document.getElementById("l2d-widget-container");
 		if (!container) return;
-
-		// 重复初始化前先释放上一个实例：destroy 会释放 WebGL 上下文并移除自己
-		// 创建的 canvas / 菜单 / 气泡 DOM。不这样做时，HMR 或组件重建会不断新建
-		// 上下文而不回收，触达浏览器上限（通常 16 个）后最老的上下文被丢弃，
-		// 表现为模型突然消失。
-		if (widgetInstance) {
-			// 先摘掉自己注册的拖动监听：widget 的 destroy() 只清理它自己的
-			// document 监听，不知道我们挂在容器上的这四个。
-			dragDetach?.();
-			dragDetach = null;
-			dragContainer = null;
-			widgetInstance.destroy().catch(() => {});
-			widgetInstance = null;
+		if (!window.Live2DCubismCore) {
+			console.error(
+				"Live2DWidget: Cubism Core 未加载，看板娘初始化中止。请确认 /pio/models/live2d/live2dcubismcore.min.js 可访问。",
+			);
+			return;
 		}
 
+		// 重复初始化前先释放上一个实例（HMR / 组件重建），否则 WebGL 上下文会
+		// 不断新建而不回收，触达浏览器上限（通常 16 个）后最老的上下文被丢弃，
+		// 表现为模型突然消失。
+		instance?.destroy();
+		instance = null;
+
 		try {
-			const models = JSON.parse(container.dataset.models || "[]");
-			const position = container.dataset.position || "bottom-left";
-			const size = JSON.parse(container.dataset.size || "300");
-			const primaryColor = container.dataset.primaryColor || undefined;
-			const transitionDuration = container.dataset.transitionDuration
-				? parseInt(container.dataset.transitionDuration)
-				: undefined;
-			const transitionType = container.dataset.transitionType || undefined;
-			const menus = JSON.parse(container.dataset.menus || "{}");
-			const tips = JSON.parse(container.dataset.tips || "{}");
-			const responsive = JSON.parse(container.dataset.responsive || "{}");
-
-			// 响应式检查：移动端隐藏
-			if (responsive.hideOnMobile) {
-				const breakpoint = responsive.mobileBreakpoint || 768;
-				if (window.innerWidth <= breakpoint) {
-					container.style.display = "none";
-					return;
-				}
-			}
-
+			const models: ModelConfig[] = JSON.parse(
+				container.dataset.models || "[]",
+			);
 			if (models.length === 0) {
 				console.warn("No Live2D models configured");
 				return;
 			}
+			modelConfigs.splice(0, modelConfigs.length, ...models);
 
-			const options: any = {
-				model: models.length === 1 ? models[0] : models,
-				position: position,
-				size: size,
-			};
-
-			if (primaryColor) options.primaryColor = primaryColor;
-			if (transitionDuration) options.transitionDuration = transitionDuration;
-			if (transitionType) options.transitionType = transitionType;
-
-			// 菜单配置 - 将 action 字符串映射为实际函数
-			if (menus.items || (menus.extraItems && menus.extraItems.length > 0)) {
-				options.menus = {};
-				if (menus.items) {
-					options.menus.items = menus.items.map((item: any) => ({
-						icon: item.icon,
-						label: item.label,
-						onClick: menuActions[item.action] || (() => {}),
-					}));
-				}
-				if (menus.extraItems) {
-					options.menus.extraItems = menus.extraItems.map((item: any) => ({
-						icon: item.icon,
-						label: item.label,
-						onClick: menuActions[item.action] || (() => {}),
-					}));
-				}
-				if (menus.align) {
-					options.menus.align = menus.align;
-				}
-			}
-
-			// 提示配置
-			if (tips) {
-				const tipsConfig = tips.enable === false ? false : {
-					...(tips.welcomeMessage && { welcomeMessage: tips.welcomeMessage }),
-					...(tips.messages && { messages: tips.messages }),
-					...(tips.duration !== undefined && { duration: tips.duration }),
-					...(tips.interval !== undefined && { interval: tips.interval }),
-					...(tips.offset && { offset: tips.offset }),
-					...(tips.typing && { typing: tips.typing }),
-					// l2d-widget 的气泡默认 whiteSpace:'nowrap'，会盖掉自带的
-					// wordBreak:'break-word'，长文案横向溢出而不换行。style 选项在默认值
-					// 之后合并，可以直接声明式覆盖，无需再靠 MutationObserver 改写行内样式。
-					style: { whiteSpace: "normal" },
-				};
-				
-				if (tipsConfig === false || Object.keys(tipsConfig).length > 0) {
-					if (Array.isArray(options.model)) {
-						options.model.forEach((m: any) => m.tips = tipsConfig);
-					} else {
-						options.model.tips = tipsConfig;
-					}
-				}
-			}
-
-			widgetInstance = createWidget(options);
-			setupDrag(widgetInstance);
+			instance = createWidget(container);
 		} catch (e) {
 			console.error("Failed to initialize Live2D widget:", e);
 		}
 	}
 
-	// 确保只初始化一次
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", initWidget);
-	} else {
-		initWidget();
-	}
+	const modelConfigs: ModelConfig[] = [];
 
-	// 响应式处理：窗口大小变化时显示/隐藏
-	function handleResponsive() {
-		const container = document.getElementById("l2d-widget-container");
-		if (!container) return;
+	// ---------------- 控制器 ----------------
 
+	const controller = {
+		sleep: () => {},
+		resetPosition: () => {},
+		switchModel: (_index: number) => {},
+	};
+
+	function createWidget(container: HTMLElement): { destroy: () => void } {
+		const models = modelConfigs;
+		const position = container.dataset.position || "bottom-left";
+		const primaryColor = container.dataset.primaryColor || "";
+		const transitionDuration = container.dataset.transitionDuration
+			? Number.parseInt(container.dataset.transitionDuration, 10)
+			: 1500;
+		const transitionType = container.dataset.transitionType || "slide";
+		const menus = JSON.parse(container.dataset.menus || "{}");
+		const tips = JSON.parse(container.dataset.tips || "{}");
 		const responsive = JSON.parse(container.dataset.responsive || "{}");
-		if (responsive.hideOnMobile) {
-			const breakpoint = responsive.mobileBreakpoint || 768;
-			if (window.innerWidth <= breakpoint) {
-				container.style.display = "none";
-			} else {
-				container.style.display = "";
-			}
+		const draggable = JSON.parse(container.dataset.draggable || "{}");
+
+		if (primaryColor) {
+			container.style.setProperty("--l2d-primary", primaryColor);
 		}
+		container.style.setProperty("--l2d-dur", `${transitionDuration}ms`);
+		container.classList.add(`l2d-mode-${transitionType}`);
+		if (position === "bottom-right") {
+			container.style.right = "0";
+			container.style.bottom = "0";
+		} else {
+			container.style.left = "0";
+			container.style.bottom = "0";
+		}
+
+		// ---- DOM 骨架 ----
+		container.innerHTML = "";
+		const stage = document.createElement("div");
+		stage.className = "l2d-stage l2d-hidden";
+		const canvas = document.createElement("canvas");
+		canvas.className = "l2d-canvas";
+		stage.appendChild(canvas);
+		container.appendChild(stage);
+
+		// 状态条挂在 stage 之外：模型退场（休眠/切换）时仍然可见
+		const statusPill = document.createElement("div");
+		statusPill.className = "l2d-status";
+		container.appendChild(statusPill);
+
+		const showStatus = (text: string, clickable = false) => {
+			statusPill.textContent = text;
+			statusPill.classList.add("l2d-status-visible");
+			statusPill.classList.toggle("l2d-status-clickable", clickable);
+		};
+		const hideStatus = () => statusPill.classList.remove("l2d-status-visible");
+
+		// ---- PIXI 应用 ----
+		const dpr = Math.min(window.devicePixelRatio || 1, 2);
+		const app = new PIXI.Application({
+			view: canvas,
+			width: container.clientWidth,
+			height: container.clientHeight,
+			backgroundAlpha: 0,
+			antialias: true,
+			resolution: dpr,
+			autoDensity: true,
+		});
+
+		let model: any = null;
+		let currentLoadId = 0;
+		const timers: number[] = [];
+		let tipsTimer = 0;
+		const disposers: (() => void)[] = [];
+
+		// 模型更新统一由 app.ticker 驱动（累积 dt，渲染时 _render 消费），
+		// 不依赖 Ticker.shared 自启动：后者在部分环境（无 RAF 的自动化页签等）
+		// 不会触发，而 app.ticker 由 Application 自己管理渲染循环，路径确定。
+		const driveModelUpdate = () => {
+			if (model) model.update(app.ticker.deltaMS);
+		};
+		app.ticker.add(driveModelUpdate);
+
+		// ---- 提示气泡 ----
+		const bubble = document.createElement("div");
+		bubble.className = "l2d-tips";
+		if (tips.offset) {
+			bubble.style.marginLeft = `${tips.offset.x ?? 0}px`;
+			bubble.style.marginTop = `${tips.offset.y ?? 0}px`;
+		}
+		stage.appendChild(bubble);
+
+		let bubbleTimer = 0;
+		const showBubble = (text: string, duration: number) => {
+			bubble.textContent = text;
+			bubble.classList.add("l2d-tips-visible");
+			window.clearTimeout(bubbleTimer);
+			bubbleTimer = window.setTimeout(
+				() => bubble.classList.remove("l2d-tips-visible"),
+				duration,
+			);
+		};
+
+		// 打字机 + 口型：type 参数配置后，气泡文字逐字打出并驱动嘴型参数。
+		// 帧驱动放在 beforeModelUpdate（晚于动作求值），否则嘴型会被 Idle 覆盖。
+		const typing = tips.typing as
+			| {
+					param?: string;
+					speed?: number;
+					minValue?: number;
+					maxValue?: number;
+			  }
+			| undefined;
+		const typingState: {
+			active: boolean;
+			text: string;
+			shown: number;
+			timer: number;
+			speed: number;
+			min: number;
+			max: number;
+			paramIndex: number;
+		} = {
+			active: false,
+			text: "",
+			shown: 0,
+			timer: 0,
+			speed: typing?.speed ?? 100,
+			min: typing?.minValue ?? 0.5,
+			max: typing?.maxValue ?? 1,
+			paramIndex: -1,
+		};
+
+		const resolveMouthParamIndex = (): number => {
+			if (!model?.internalModel?.coreModel) return -1;
+			const core = model.internalModel.coreModel;
+			// Framework 的 CubismModel 只接受 CubismIdHandle 查参，先经 ID 管理器换句柄
+			const id = CubismFramework.getIdManager().getId(
+				typing?.param || "ParamMouthOpenY",
+			);
+			return core.getParameterIndex(id);
+		};
+
+		const onBeforeModelUpdate = () => {
+			if (!typingState.active || typingState.paramIndex < 0) return;
+			const core = model?.internalModel?.coreModel;
+			if (!core) return;
+			// 逐字符随机开合会抖成筛子；用两个错相正弦叠出连续波形，
+			// 在 min~max 之间起伏，接近说话的节律
+			const t = performance.now() / 1000;
+			const wave =
+				(Math.sin(t * 9.3) + Math.sin(t * 4.7 + 1.3)) / 4 + 0.5; // 0~1
+			core.setParameterValueByIndex(
+				typingState.paramIndex,
+				typingState.min + wave * (typingState.max - typingState.min),
+			);
+		};
+
+		const showTypingBubble = (text: string, duration: number) => {
+			if (!typing) {
+				showBubble(text, duration);
+				return;
+			}
+			window.clearInterval(typingState.timer);
+			bubble.textContent = "";
+			bubble.classList.add("l2d-tips-visible");
+			typingState.active = true;
+			typingState.text = text;
+			typingState.shown = 0;
+			typingState.paramIndex = resolveMouthParamIndex();
+			typingState.timer = window.setInterval(() => {
+				typingState.shown += 1;
+				bubble.textContent = text.slice(0, typingState.shown);
+				if (typingState.shown >= text.length) {
+					window.clearInterval(typingState.timer);
+					typingState.active = false;
+					// 口型归零，别让嘴停在半开（Idle 会接管，这里兜底）
+					if (typingState.paramIndex >= 0) {
+						model?.internalModel?.coreModel?.setParameterValueByIndex(
+							typingState.paramIndex,
+							0,
+						);
+					}
+					window.setTimeout(
+						() => bubble.classList.remove("l2d-tips-visible"),
+						duration,
+					);
+				}
+			}, typingState.speed);
+		};
+
+		const startTipsRotation = () => {
+			if (tips.enable === false) return;
+			const messages: string[] = tips.messages ?? [];
+			const duration: number = tips.duration ?? 3000;
+			const interval: number = tips.interval ?? 5000;
+			if (!messages.length) return;
+			let idx = Math.floor(Math.random() * messages.length);
+			showTypingBubble(messages[idx], duration);
+			// 切换模型会重新进入这里，先清掉上一轮的循环再注册，避免多份轮换叠加
+			window.clearInterval(tipsTimer);
+			tipsTimer = window.setInterval(() => {
+				idx = (idx + 1) % messages.length;
+				showTypingBubble(messages[idx], duration);
+			}, Math.max(interval, duration));
+		};
+
+		// ---- 模型加载与适配 ----
+
+		// PSD2Live 1.3.0 导出的 moc 把发珠（ArtMeshHeadwear）压在刘海之下，
+		// 与 PSD 层序不符；工程侧的 draw_order 编辑对无参数轴的静态网格是空操作。
+		// 这里在运行时提升发珠渲染序（移植自模型工程的演示页）。导出顺序修正后
+		// 该补丁自动退化为空操作。
+		function applyHeadwearPatch(m: any) {
+			const core = m.internalModel?.coreModel;
+			if (!core?.getDrawableCount) return;
+			const ids: string[] = [];
+			for (let i = 0; i < core.getDrawableCount(); i++) {
+				ids.push(core.getDrawableId(i));
+			}
+			const hw = ids.indexOf("ArtMeshHeadwear");
+			const fh = ids.indexOf("ArtMeshFrontHair");
+			if (hw < 0 || fh < 0) return;
+			const rawOrders = core.getDrawableRenderOrders.bind(core);
+			core.getDrawableRenderOrders = function () {
+				const arr: Int32Array = rawOrders();
+				if (arr[hw] >= arr[fh]) return arr;
+				const fixed = Int32Array.from(arr);
+				const from = arr[hw];
+				for (let i = 0; i < fixed.length; i++) {
+					if (fixed[i] > from) fixed[i] -= 1;
+				}
+				fixed[hw] = Math.max(...Array.from(arr));
+				return fixed;
+			};
+		}
+
+		function fitModel() {
+			if (!model) return;
+			const w = container.clientWidth;
+			const h = container.clientHeight;
+			const cfg = models[currentModelIndex] ?? {};
+			const iw = model.internalModel.width;
+			const ih = model.internalModel.height;
+			// PSD 画布含大片透明边距（人物只占约六成宽、九成高），按整画布 contain
+			// 适配会让底部锚定的人物头顶留出一大块空区、与菜单列错位。声明了
+			// charBox 时按人物包围盒适配：底边贴画布底、高度撑满，水平居中；
+			// 未声明则退回整画布 contain。
+			const box = cfg.charBox;
+			const base = box
+				? Math.min(
+						w / ((box.x1 - box.x0) * iw),
+						h / ((box.y1 - box.y0) * ih),
+					)
+				: Math.min(w / iw, h / ih);
+			const scale = base * (cfg.scale ?? 1);
+			model.scale.set(scale);
+			model.anchor.set(0.5, 1);
+			// anchor(0.5,1) 的枢轴在整画布底部中心；把人物底缘对到画布底、
+			// 人物中心对到画布水平中点
+			const charCx = box ? ((box.x0 + box.x1) / 2) * iw : iw / 2;
+			const charBottom = box ? box.y1 * ih : ih;
+			model.position.set(
+				w / 2 - (charCx - iw / 2) * scale + (cfg.offset?.[0] ?? 0) * w,
+				h + (ih - charBottom) * scale - (cfg.offset?.[1] ?? 0) * h,
+			);
+		}
+
+		async function loadModel(index: number): Promise<void> {
+			const loadId = ++currentLoadId;
+			const path = models[index]?.path;
+			if (!path) return;
+			showStatus("正在加载");
+			const m = await Live2DModel.from(path, {
+				autoInteract: false,
+				motionPreload: MotionPreloadStrategy.IDLE,
+				autoUpdate: false,
+			});
+			// 加载期间可能已切换/销毁，丢弃过期结果
+			if (loadId !== currentLoadId) {
+				m.destroy();
+				return;
+			}
+			if (model) {
+				if (typing) {
+					model.internalModel?.off?.(
+						"beforeModelUpdate",
+						onBeforeModelUpdate,
+					);
+				}
+				app.stage.removeChild(model);
+				model.destroy();
+			}
+			model = m;
+			currentModelIndex = index;
+			applyHeadwearPatch(m);
+			app.stage.addChild(m);
+			if (typing) {
+				// 帧驱动挂在当前模型上；换模型后要重新挂
+				m.internalModel?.on?.("beforeModelUpdate", onBeforeModelUpdate);
+			}
+			fitModel();
+			hideStatus();
+			stage.classList.remove("l2d-hidden");
+			if (tips.enable !== false && tips.welcomeMessage?.length) {
+				showTypingBubble(
+					tips.welcomeMessage[
+						Math.floor(Math.random() * tips.welcomeMessage.length)
+					],
+					tips.duration ?? 3000,
+				);
+			}
+			startTipsRotation();
+		}
+
+		// ---- 交互：鼠标跟随 + 点击反应 ----
+		// autoInteract 关闭后自己接线：跟随挂 document 级 pointermove（视线跟随
+		// 页面任意位置的光标，l2d-widget 时代即如此），focus 只取相对模型中心的
+		// 方向，画布外坐标（负值/超界）天然成立；光标离开浏览器窗口时回正。
+		// 点击播 TapBody 动作，节流防连点打断。
+		const toCanvasPoint = (e: PointerEvent) => {
+			const rect = canvas.getBoundingClientRect();
+			return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+		};
+		const onDocumentMove = (e: PointerEvent) => {
+			if (!model) return;
+			const p = toCanvasPoint(e);
+			model.focus(p.x, p.y);
+		};
+		const onDocumentOut = (e: MouseEvent) => {
+			// relatedTarget 为空才是真正离开窗口，切标签页/悬停浏览器 UI 时触发
+			if (e.relatedTarget || !model) return;
+			model.focus(container.clientWidth / 2, container.clientHeight / 2);
+		};
+		document.addEventListener("pointermove", onDocumentMove, {
+			passive: true,
+		});
+		document.addEventListener("mouseout", onDocumentOut);
+		let downAt = 0;
+		let downX = 0;
+		let downY = 0;
+		let lastTapAt = 0;
+		const onPointerDown = (e: PointerEvent) => {
+			downAt = performance.now();
+			downX = e.clientX;
+			downY = e.clientY;
+		};
+		const onPointerUp = (e: PointerEvent) => {
+			if (!model) return;
+			// 长按或位移过大的都属于拖动，不触发点击动作
+			if (performance.now() - downAt > TAP_MAX_DURATION_MS) return;
+			if (Math.hypot(e.clientX - downX, e.clientY - downY) > TAP_MAX_DELTA_PX)
+				return;
+			if (performance.now() - lastTapAt < TAP_THROTTLE_MS) return;
+			lastTapAt = performance.now();
+			model.motion("TapBody", undefined, MotionPriority.NORMAL);
+		};
+		canvas.addEventListener("pointerdown", onPointerDown);
+		canvas.addEventListener("pointerup", onPointerUp);
+		disposers.push(() => {
+			document.removeEventListener("pointermove", onDocumentMove);
+			document.removeEventListener("mouseout", onDocumentOut);
+			canvas.removeEventListener("pointerdown", onPointerDown);
+			canvas.removeEventListener("pointerup", onPointerUp);
+		});
+
+		// 打字口型的帧驱动钩子已在 loadModel 里挂到当前模型上（此处尚无模型）
+
+		// ---- 菜单 ----
+		const menuItems = [
+			...(menus.items ?? []),
+			...(menus.extraItems ?? []),
+		] as { icon?: string; label: string; action: string }[];
+		if (menuItems.length) {
+			const box = document.createElement("div");
+			box.className = `l2d-menus l2d-align-${menus.align ?? "right"}`;
+			for (const item of menuItems) {
+				const btn = document.createElement("button");
+				btn.type = "button";
+				btn.className = "l2d-menu-btn";
+				btn.title = item.label;
+				btn.setAttribute("aria-label", item.label);
+				if (item.icon) {
+					const img = document.createElement("img");
+					img.src = item.icon; // 构建期内联的 SVG data URI
+					img.alt = "";
+					btn.appendChild(img);
+				} else {
+					btn.textContent = item.label.slice(0, 1);
+				}
+				btn.addEventListener("click", () => menuActions[item.action]?.());
+				box.appendChild(btn);
+			}
+			stage.appendChild(box);
+		}
+
+		// ---- 休眠 / 唤醒 / 失败重试 ----
+		// 状态条是唯一的非画布交互入口：休息点击唤醒、加载失败点击重试。
+		// failedAt 记录失败的是哪个模型，重试加载同一个而不是从头来
+		let failedAt: number | null = null;
+		const describeError = (e: unknown): string => {
+			const msg = e instanceof Error ? e.message : String(e);
+			if (/404|Failed to fetch|NetworkError|fetch/i.test(msg)) {
+				return "模型加载失败：找不到文件或网络错误（点击重试）";
+			}
+			if (/cors|cross-origin|blocked/i.test(msg)) {
+				return "模型加载失败：跨域被拦（点击重试）";
+			}
+			if (/settings|json|parse|moc3|Unexpected/i.test(msg)) {
+				return "模型加载失败：模型文件损坏（点击重试）";
+			}
+			return "模型加载失败（点击重试）";
+		};
+		const onLoadFail = (index: number, e: unknown) => {
+			console.error("Failed to load Live2D model:", e);
+			failedAt = index;
+			showStatus(describeError(e), true);
+		};
+		const wake = () => {
+			container.classList.remove("l2d-sleeping");
+			stage.classList.remove("l2d-hidden");
+			hideStatus();
+		};
+		statusPill.addEventListener("click", () => {
+			const text = statusPill.textContent ?? "";
+			if (text.includes("休息")) {
+				wake();
+			} else if (failedAt !== null) {
+				const index = failedAt;
+				failedAt = null;
+				showStatus("正在加载");
+				loadModel(index).catch((e) => onLoadFail(index, e));
+			}
+		});
+		controller.sleep = () => {
+			container.classList.add("l2d-sleeping");
+			stage.classList.add("l2d-hidden");
+			showStatus("正在休息", true);
+		};
+		controller.switchModel = (index: number) => {
+			if (models.length < 2 || index === currentModelIndex) return;
+			showStatus("切换中");
+			loadModel(index).catch((e) => {
+				console.error("Failed to switch Live2D model:", e);
+				hideStatus();
+			});
+		};
+		// ---- 拖动（长按启动，位置记忆）----
+		// 动画只作用于内层 stage（transform/opacity），拖动只改容器 left/top，
+		// 两者互不干扰。
+		const dragDetach = setupDrag(container, stage, draggable);
+		controller.resetPosition = () => {
+			container.style.left = "";
+			container.style.top = "";
+			container.style.right = "";
+			container.style.bottom = "";
+			try {
+				localStorage.removeItem(POSITION_STORAGE_KEY);
+			} catch {
+				/* 位置记忆是增强功能，失败不影响看板娘 */
+			}
+		};
+
+		// ---- 移动端隐藏 ----
+		const breakpoint = responsive.mobileBreakpoint || 768;
+		const applyResponsive = () => {
+			if (!responsive.hideOnMobile) return true;
+			const hidden = window.innerWidth <= breakpoint;
+			container.style.display = hidden ? "none" : "";
+			return !hidden;
+		};
+
+		// ---- 首次加载 ----
+		if (applyResponsive()) {
+			loadModel(0).catch((e) => onLoadFail(0, e));
+		}
+
+		// 开发期调试句柄：浏览器控制台可直接查看模型状态、验证绑定与渲染顺序
+		if (import.meta.env.DEV) {
+			(window as any).__l2dDebug = {
+				get model() {
+					return model;
+				},
+				app,
+				sleep: () => controller.sleep(),
+				wake,
+				switchModel: controller.switchModel,
+			};
+		}
+
+		const onResize = () => {
+			const visible = applyResponsive();
+			// 隐藏期间跳过加载，重新可见时再懒加载（此前失败过就重试同一个）
+			if (visible && !model) {
+				const index = failedAt ?? 0;
+				failedAt = null;
+				loadModel(index).catch((e) => onLoadFail(index, e));
+			}
+		};
+		window.addEventListener("resize", onResize);
+
+		// 切页后重置模型索引：挂件在 swup 管理范围之外，切页不会重建它，
+		// 不重置的话「切换模型」会从切页前的位置继续自增，与显示对不上。
+		const onSwupPageView = () => {
+			currentModelIndex = 0;
+		};
+		document.addEventListener("swup:page:view", onSwupPageView);
+
+		return {
+			destroy: () => {
+				currentLoadId += 1; // 让在途的 loadModel 丢弃结果
+				app.ticker.remove(driveModelUpdate);
+				dragDetach();
+				window.removeEventListener("resize", onResize);
+				document.removeEventListener("swup:page:view", onSwupPageView);
+				for (const t of timers) window.clearInterval(t);
+				window.clearInterval(tipsTimer);
+				window.clearTimeout(bubbleTimer);
+				window.clearInterval(typingState.timer);
+				typingState.active = false;
+				for (const d of disposers) d();
+				try {
+					model?.destroy();
+				} catch {
+					/* 模型可能尚未加载完成 */
+				}
+				// removeView 连同 canvas 一起移除，WebGL 上下文随之释放
+				app.destroy(true, { children: true, texture: true, baseTexture: true });
+				container.innerHTML = "";
+				container.className = "";
+				// 只清掉运行期写入的动态定位，保留模板里的尺寸/层级基础样式
+				container.style.left = "";
+				container.style.top = "";
+				container.style.right = "";
+				container.style.bottom = "";
+			},
+		};
 	}
 
-	// ---- 拖动支持 ----
-	//
-	// 两个必须绕开的 l2d-widget 内部机制（读 dist/index.js 得知）：
-	// 1. slide 模式下 widget 用 container.style.transform 做显隐动画
-	//    （translateY(0)/translateY(130%)，带 1500ms 过渡）。所以拖动只能改
-	//    left/top，绝不能用 transform，否则每次 sleep/切换模型都会被覆盖。
-	// 2. widget 在容器上挂了一次性冒泡 transitionend 监听（switchModel 和
-	//    destroy 都 await 它）。拖动期间必须把 transition 置为 none，否则拖动
-	//    自己产生的过渡事件会冒泡上去、让退出动画提前放行。
-	//
-	// 另外三个部件是 body 下的兄弟节点而非嵌套：容器与 canvas、状态条各自由
-	// widget 直接挂到 body，菜单挂在容器内部。因此菜单会跟着走，状态条不会，
-	// 需要在拖动后手动同步状态条位置。
-
-	const POSITION_STORAGE_KEY = "live2dPosition";
-	const DRAG_CLASS = "l2d-dragging";
-
-	let dragContainer: HTMLElement | null = null;
-	let dragDetach: (() => void) | null = null;
+	// ---------------- 拖动 ----------------
 
 	function readSavedPosition(): { left: number; top: number } | null {
 		try {
@@ -320,21 +935,13 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 		}
 	}
 
-	function clearSavedPosition(): void {
-		try {
-			localStorage.removeItem(POSITION_STORAGE_KEY);
-		} catch {
-			/* 同上 */
-		}
-	}
-
 	/** 把 left/top 钳制在视口内，避免窗口缩小后模型跑到屏幕外找不回来。 */
 	function clampPosition(
-		container: HTMLElement,
+		el: HTMLElement,
 		left: number,
 		top: number,
 	): { left: number; top: number } {
-		const rect = container.getBoundingClientRect();
+		const rect = el.getBoundingClientRect();
 		const maxLeft = Math.max(0, window.innerWidth - rect.width);
 		const maxTop = Math.max(0, window.innerHeight - rect.height);
 		return {
@@ -343,107 +950,28 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 		};
 	}
 
-	/**
-	 * 从 widget 实例拿到它自己创建的容器。
-	 * createWidget 把容器直接挂在 body 上且没有 id/class，但 canvas 是公开可达的
-	 * （widget.l2d.getCanvas()），其父节点就是容器。
-	 * 兜底：若该访问链在压缩产物中不可用，则按「body 下同时含 canvas 与菜单、
-	 * 且 z-index 为 9999 的 fixed 容器」在 DOM 里找。
-	 */
-	function resolveWidgetContainer(widget: {
-		l2d?: { getCanvas?: () => HTMLCanvasElement | null };
-	}): HTMLElement | null {
-		const canvas = widget?.l2d?.getCanvas?.();
-		const direct = (canvas?.parentElement as HTMLElement) ?? null;
-		if (direct) return direct;
-
-		// 兜底：widget 容器是唯一同时含 canvas 且 z-index 9999 的 body 直系 div
-		for (const el of document.querySelectorAll<HTMLElement>("body > div")) {
-			if (el.style.zIndex !== "9999") continue;
-			if (!el.querySelector("canvas")) continue;
-			return el;
-		}
-		return null;
-	}
-
-	/** 状态条是容器的兄弟节点，独立定位在 left/bottom，需要跟着模型走。 */
-	function syncStatusBarPosition(container: HTMLElement): void {
-		const rect = container.getBoundingClientRect();
-		for (const el of document.querySelectorAll<HTMLElement>("body > div")) {
-			if (el === container) continue;
-			if (el.style.position !== "fixed") continue;
-			if (!/正在加载|正在休息|切换中/.test(el.textContent || "")) continue;
-			// 状态条原本用 bottom: 容器高/2 贴在容器垂直中点
-			el.style.left = `${rect.left}px`;
-			el.style.right = "auto";
-			el.style.bottom = `${window.innerHeight - (rect.top + rect.height / 2)}px`;
-		}
-	}
-
-	/** 把容器的 right/bottom 定位换算成显式 left/top，之后拖动只改这两个值。 */
-	function pinToLeftTop(container: HTMLElement): { left: number; top: number } {
-		const rect = container.getBoundingClientRect();
-		container.style.left = `${rect.left}px`;
-		container.style.top = `${rect.top}px`;
-		container.style.right = "auto";
-		container.style.bottom = "auto";
-		return { left: rect.left, top: rect.top };
-	}
-
-	function applyPosition(container: HTMLElement, left: number, top: number): void {
-		const next = clampPosition(container, left, top);
-		container.style.left = `${next.left}px`;
-		container.style.top = `${next.top}px`;
-	}
-
-	function resetWidgetPosition(alsoClearStorage: boolean): void {
-		const container = dragContainer;
-		if (!container) return;
-		container.style.left = "";
-		container.style.top = "";
-		container.style.right = "";
-		container.style.bottom = "";
-		if (alsoClearStorage) clearSavedPosition();
-		// 回到配置的默认角落后重新读取，交给 widget 自己的 right/bottom 定位
-		window.requestAnimationFrame(() => {
-			if (!container.isConnected) return;
-			pinToLeftTop(container);
-			syncStatusBarPosition(container);
-		});
-	}
-
-	function setupDrag(widget: unknown): void {
-		const container = resolveWidgetContainer(
-			widget as { l2d?: { getCanvas?: () => HTMLCanvasElement | null } },
-		);
-		if (!container) return;
-
-		const host = document.getElementById("l2d-widget-container");
-		const draggable = JSON.parse(host?.dataset.draggable || "{}");
-		if (draggable.enable === false) return;
-
-		// 换实例前先摘掉旧监听，避免 HMR / 重建后重复绑定
-		dragDetach?.();
-		dragContainer = container;
+	function setupDrag(
+		container: HTMLElement,
+		_stage: HTMLElement,
+		draggable: {
+			enable?: boolean;
+			longPressMs?: number;
+			savePosition?: boolean;
+		},
+	): () => void {
+		if (draggable.enable === false) return () => {};
 
 		const longPressMs =
 			typeof draggable.longPressMs === "number" ? draggable.longPressMs : 150;
 
-		// 恢复上次位置；没有记录就沿用 widget 自己的角落定位
+		// 恢复上次位置；没有记录就沿用配置的角落定位
 		const saved = draggable.savePosition !== false ? readSavedPosition() : null;
 		if (saved) {
-			const restore = () => {
-				if (!container.isConnected) return;
-				// 必须显式清掉 widget 自己的 bottom/right，否则 bottom:0 会与 top 同时生效
-				container.style.bottom = "auto";
-				container.style.right = "auto";
-				applyPosition(container, saved.left, saved.top);
-				syncStatusBarPosition(container);
-			};
-			restore();
-			// widget 入场动画/模型加载会再次写容器样式，补一次确保恢复的位置生效
-			window.requestAnimationFrame(restore);
-			window.setTimeout(restore, 600);
+			container.style.bottom = "auto";
+			container.style.right = "auto";
+			const clamped = clampPosition(container, saved.left, saved.top);
+			container.style.left = `${clamped.left}px`;
+			container.style.top = `${clamped.top}px`;
 		}
 
 		let pressTimer: number | null = null;
@@ -464,8 +992,6 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 
 		const onPointerDown = (event: PointerEvent) => {
 			if (event.button !== 0) return;
-			// 拖动期间禁止过渡：widget 在容器上挂了一次性 transitionend 监听，
-			// 拖动自产的过渡事件会冒泡并让 switchModel/destroy 提前放行。
 			clearPressTimer();
 			pressTimer = window.setTimeout(() => {
 				pressTimer = null;
@@ -476,10 +1002,7 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 				startY = event.clientY;
 				originLeft = rect.left;
 				originTop = rect.top;
-				pinToLeftTop(container);
-				container.style.transition = "none";
 				container.style.cursor = "grabbing";
-				container.classList.add(DRAG_CLASS);
 				// 捕获指针，让拖动期间的事件即使在模型外也继续送达。
 				// 必须 try/catch：指针可能已经释放（快速点击、触屏取消），
 				// 此时会抛 NotFoundError，未捕获会中断整个拖动初始化。
@@ -496,22 +1019,20 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 			if (!dragging) return;
 			// 只认触发拖动的那个指针，避免多指/多设备事件串扰
 			if (pointerId !== null && event.pointerId !== pointerId) return;
-			// 跟手移动，超出视口的位移由 clampPosition 收敛
-			applyPosition(
+			const next = clampPosition(
 				container,
 				originLeft + (event.clientX - startX),
 				originTop + (event.clientY - startY),
 			);
+			container.style.left = `${next.left}px`;
+			container.style.top = `${next.top}px`;
 		};
 
 		const endDrag = () => {
 			clearPressTimer();
 			if (!dragging) return;
 			dragging = false;
-			container.classList.remove(DRAG_CLASS);
 			container.style.cursor = "";
-			// 恢复 widget 原本的过渡设置（它自己在 slide 模式下写了 transform 过渡）
-			container.style.transition = "";
 			if (pointerId !== null) {
 				// 只在确实捕获成功时释放；否则同样会抛 NotFoundError
 				if (hasCapture) {
@@ -527,13 +1048,11 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 			// 松手时按钳制后的最终值落位，保证「屏幕上的位置」与「存下来的位置」一致
 			const rect = container.getBoundingClientRect();
 			const final = clampPosition(container, rect.left, rect.top);
-			applyPosition(container, final.left, final.top);
-			syncStatusBarPosition(container);
+			container.style.left = `${final.left}px`;
+			container.style.top = `${final.top}px`;
 			if (draggable.savePosition !== false) {
 				savePosition(final.left, final.top);
 			}
-			// 拖动结束后补一次：状态条可能在动画中才挂到 body 上
-			window.setTimeout(() => syncStatusBarPosition(container), 200);
 		};
 
 		container.addEventListener("pointerdown", onPointerDown);
@@ -541,35 +1060,20 @@ function serializeMenus(menus: Props["config"]["menus"]) {
 		container.addEventListener("pointerup", endDrag);
 		container.addEventListener("pointercancel", endDrag);
 
-		const onResize = () => {
-			if (!container.isConnected) return;
-			const rect = container.getBoundingClientRect();
-			const clamped = clampPosition(container, rect.left, rect.top);
-			if (clamped.left !== rect.left || clamped.top !== rect.top) {
-				applyPosition(container, clamped.left, clamped.top);
-			}
-			syncStatusBarPosition(container);
-		};
-		window.addEventListener("resize", onResize);
-
-		dragDetach = () => {
+		return () => {
 			clearPressTimer();
 			container.removeEventListener("pointerdown", onPointerDown);
 			container.removeEventListener("pointermove", onPointerMove);
 			container.removeEventListener("pointerup", endDrag);
 			container.removeEventListener("pointercancel", endDrag);
-			window.removeEventListener("resize", onResize);
-			container.classList.remove(DRAG_CLASS);
-			container.style.transition = "";
 			container.style.cursor = "";
 		};
 	}
 
-	window.addEventListener("resize", handleResponsive);
-	// 切页后重置模型索引：widget 容器在 swup 管理范围之外，切页不会重建它，
-	// 但 currentModelIndex 是模块级状态。不重置的话，切页后菜单里的“切换模型”
-	// 会从切页前的位置继续自增，与容器内显示的模型对不上。
-	document.addEventListener("swup:page:view", () => {
-		currentModelIndex = 0;
-	});
+	// 确保只初始化一次
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", initWidget);
+	} else {
+		initWidget();
+	}
 </script>

@@ -18,7 +18,7 @@ const PIO_ROOT = "pio";
 const LIVE2D_ASSETS = ["pio/models/live2d"];
 // Spine 专属资源：模型 + 本地回退的 spine-player 运行时
 const SPINE_ASSETS = ["pio/models/spine", "pio/static"];
-// Live2DWidget.astro 的客户端脚本（内联了 l2d-widget，约 650 KiB）。
+// Live2DWidget.astro 的客户端脚本（pixi.js + pixi-live2d-display 运行时）。
 // 组件没渲染时 Astro 仍会产出这个 chunk，且没有任何 HTML 引用它。
 const L2D_CHUNK_GLOB = "_astro/Live2DWidget.astro_astro_type_script*";
 

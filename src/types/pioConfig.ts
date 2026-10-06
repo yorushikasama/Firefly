@@ -32,17 +32,34 @@ export type SpineModelConfig = {
 	opacity?: number; // 透明度，0-1，默认1.0
 };
 
-// Live2D 看板娘配置 (使用 l2d-widget)
+// PSD 画布中人物实体的占比（0~1）。PSD2Live 导出的画布含大片透明边距，
+// 按整画布 contain 适配会在人物四周留白；声明后按人物包围盒适配。
+export type CharBox = {
+	x0: number; // 人物左缘占画布宽的比例
+	x1: number; // 人物右缘占画布宽的比例
+	y0: number; // 人物顶缘占画布高的比例
+	y1: number; // 人物底缘占画布高的比例
+};
+
+// Live2D 看板娘配置 (使用 pixi-live2d-display)
 export type Live2DWidgetConfig = {
 	enable: boolean; // 是否启用 Live2D 看板娘
 	model:
-		| { path: string; volume?: number; scale?: number; x?: number; y?: number }
+		| {
+				path: string;
+				volume?: number;
+				scale?: number;
+				x?: number;
+				y?: number;
+				charBox?: CharBox;
+		  }
 		| {
 				path: string;
 				volume?: number;
 				scale?: number;
 				x?: number; // X轴偏移，范围 -2~2，正值向右
 				y?: number; // Y轴偏移，范围 -2~2，正值向上
+				charBox?: CharBox;
 		  }[]; // 模型配置，支持单个或多个模型
 	position?: "bottom-left" | "bottom-right"; // 显示位置，默认 "bottom-left"
 	size?: number | { width: number; height: number }; // 画布尺寸（px），默认 300
