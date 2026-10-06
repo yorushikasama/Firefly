@@ -29,15 +29,39 @@ const className = Astro.props.class;
         class="transition opacity-0 scale-90 group-hover:scale-100 group-hover:opacity-100 text-white text-5xl"
       />
     </div>
-    <ImageWrapper
-      src={profileConfig.avatar || ""}
-      alt="Profile Image of the Author"
-      class="profile-avatar-image mx-auto lg:w-full h-full lg:mt-0"
-      loading="eager"
-      fetchpriority="high"
-      widths={[350]}
-      sizes="350px"
-    />
+    {profileConfig.avatarDark ? (
+      // 明暗双头像：亮色用 avatar、暗色用 avatarDark，CSS 按主题类切换显隐
+      <>
+        <ImageWrapper
+          src={profileConfig.avatar || ""}
+          alt="Profile Image of the Author"
+          class="profile-avatar-image mx-auto lg:w-full h-full lg:mt-0 dark:hidden"
+          loading="eager"
+          fetchpriority="high"
+          widths={[350]}
+          sizes="350px"
+        />
+        <ImageWrapper
+          src={profileConfig.avatarDark}
+          alt="Profile Image of the Author (Dark)"
+          class="profile-avatar-image mx-auto lg:w-full h-full lg:mt-0 hidden dark:block"
+          loading="eager"
+          fetchpriority="high"
+          widths={[350]}
+          sizes="350px"
+        />
+      </>
+    ) : (
+      <ImageWrapper
+        src={profileConfig.avatar || ""}
+        alt="Profile Image of the Author"
+        class="profile-avatar-image mx-auto lg:w-full h-full lg:mt-0"
+        loading="eager"
+        fetchpriority="high"
+        widths={[350]}
+        sizes="350px"
+      />
+    )}
   </a>
   <div class="px-2">
     <div
