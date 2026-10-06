@@ -283,43 +283,106 @@ const size =
 	#l2d-widget-container.l2d-sleeping .l2d-status {
 		pointer-events: auto;
 	}
-	/* 悬浮球：休眠形态。fixed 定位按视口坐标，可拖出容器范围 */
+	/* 悬浮球：休眠形态。外层只做定位与出入场动画，圆形裁剪在内层 face 上，
+		Zzz 气泡字浮在球外不被裁掉。fixed 定位按视口坐标，可拖出容器范围 */
 	#l2d-widget-container .l2d-ball {
 		position: fixed;
 		width: 56px;
 		height: 56px;
-		border-radius: 50%;
-		overflow: hidden;
-		border: 2px solid var(--l2d-primary);
-		box-shadow: 0 2px 10px rgb(0 0 0 / 30%);
 		cursor: pointer;
 		pointer-events: auto;
 		touch-action: none;
-		animation: l2d-ball-float 3.2s ease-in-out infinite;
+		filter: drop-shadow(0 3px 8px rgb(0 0 0 / 30%));
+		animation: l2d-ball-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+		transition:
+			filter 0.25s ease,
+			transform 0.25s ease;
 	}
-	#l2d-widget-container .l2d-ball:hover {
+	/* 拖动态：抓取光标、球体放大抬起、Zzz 暂停（人在被搬来搬去） */
+	#l2d-widget-container .l2d-ball.l2d-ball-dragging {
+		cursor: grabbing;
+		filter: drop-shadow(0 10px 18px rgb(0 0 0 / 40%));
+		transform: scale(1.08);
+	}
+	#l2d-widget-container .l2d-ball.l2d-ball-dragging .l2d-ball-face,
+	#l2d-widget-container .l2d-ball.l2d-ball-dragging .l2d-z {
+		animation-play-state: paused;
+	}
+	/* 点击唤醒的确认波纹：从球心扩散的一圈 */
+	#l2d-widget-container .l2d-ball::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: 50%;
+		box-shadow: 0 0 0 0 var(--l2d-primary);
+		opacity: 0;
+		pointer-events: none;
+	}
+	#l2d-widget-container .l2d-ball.l2d-ball-pulse::before {
+		animation: l2d-ball-pulse 0.5s ease-out;
+	}
+	@keyframes l2d-ball-pulse {
+		0% {
+			opacity: 0.9;
+			box-shadow: 0 0 0 0 var(--l2d-primary);
+		}
+		100% {
+			opacity: 0;
+			box-shadow: 0 0 0 22px transparent;
+		}
+	}
+	#l2d-widget-container .l2d-ball-face {
+		width: 100%;
+		height: 100%;
+		border-radius: 50%;
+		overflow: hidden;
+		border: 2px solid var(--l2d-primary);
+		animation: l2d-ball-float 3.2s ease-in-out infinite 0.4s;
+	}
+	#l2d-widget-container .l2d-ball:hover .l2d-ball-face {
 		border-color: var(--l2d-primary);
-		filter: brightness(1.08);
 	}
-	#l2d-widget-container .l2d-ball img {
+	/* 睡着的样子：轻微降饱和；悬停像搅扰了睡梦，恢复彩色 */
+	#l2d-widget-container .l2d-ball-face img {
 		width: 100%;
 		height: 100%;
 		display: block;
 		object-fit: cover;
 		-webkit-user-drag: none;
+		filter: saturate(0.75);
+		transition: filter 0.3s ease;
 	}
-	/* 球角上的「Zzz」角标 */
-	#l2d-widget-container .l2d-ball::after {
-		content: "Zzz";
+	#l2d-widget-container .l2d-ball:hover .l2d-ball-face img {
+		filter: saturate(1);
+	}
+	/* 飘起的 Zzz：三个错峰的 Z 从球顶升起淡出 */
+	#l2d-widget-container .l2d-z {
 		position: absolute;
-		right: -2px;
-		bottom: -2px;
-		background: var(--l2d-primary);
-		color: #fff;
-		font-size: 9px;
+		color: var(--l2d-primary);
+		font-weight: 700;
 		line-height: 1;
-		padding: 3px 4px;
-		border-radius: 6px 0 6px 0;
+		pointer-events: none;
+		text-shadow:
+			0 0 4px rgb(255 255 255 / 75%),
+			0 1px 2px rgb(0 0 0 / 15%);
+		animation: l2d-zzz 2.4s ease-out infinite;
+	}
+	#l2d-widget-container .l2d-z1 {
+		top: -2px;
+		right: 8px;
+		font-size: 13px;
+	}
+	#l2d-widget-container .l2d-z2 {
+		top: -10px;
+		right: -2px;
+		font-size: 17px;
+		animation-delay: 0.8s;
+	}
+	#l2d-widget-container .l2d-z3 {
+		top: -16px;
+		right: -8px;
+		font-size: 21px;
+		animation-delay: 1.6s;
 	}
 	@keyframes l2d-ball-float {
 		0%,
@@ -330,9 +393,49 @@ const size =
 			transform: translateY(-5px);
 		}
 	}
+	@keyframes l2d-zzz {
+		0% {
+			opacity: 0;
+			transform: translate(2px, 6px) scale(0.5) rotate(-10deg);
+		}
+		30% {
+			opacity: 0.95;
+		}
+		70% {
+			opacity: 0.6;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(12px, -16px) scale(1.1) rotate(8deg);
+		}
+	}
+	@keyframes l2d-ball-in {
+		from {
+			opacity: 0;
+			transform: scale(0.3);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+	@keyframes l2d-ball-out {
+		to {
+			opacity: 0;
+			transform: scale(0.3);
+		}
+	}
+	#l2d-widget-container .l2d-ball.l2d-ball-out {
+		animation: l2d-ball-out 0.2s ease-in both;
+	}
 	@media (prefers-reduced-motion: reduce) {
-		#l2d-widget-container .l2d-ball {
+		#l2d-widget-container .l2d-ball,
+		#l2d-widget-container .l2d-ball-face,
+		#l2d-widget-container .l2d-z {
 			animation: none;
+		}
+		#l2d-widget-container .l2d-z {
+			opacity: 0.9;
 		}
 	}
 </style>
@@ -761,18 +864,28 @@ const size =
 		// 页面任意位置的光标，l2d-widget 时代即如此），focus 只取相对模型中心的
 		// 方向，画布外坐标（负值/超界）天然成立；光标离开浏览器窗口时回正。
 		// 点击播 TapBody 动作，节流防连点打断。
+		// 画布矩形缓存：fixed 元素不因滚动失效，拖动/resize 时由各自路径刷新；
+		// 鼠标跟随每帧读 rect 是纯浪费
+		let canvasRect: { left: number; top: number } | null = null;
+		const refreshCanvasRect = () => {
+			canvasRect = null;
+		};
 		const toCanvasPoint = (e: PointerEvent) => {
-			const rect = canvas.getBoundingClientRect();
-			return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+			if (!canvasRect) {
+				const rect = canvas.getBoundingClientRect();
+				canvasRect = { left: rect.left, top: rect.top };
+			}
+			return { x: e.clientX - canvasRect.left, y: e.clientY - canvasRect.top };
 		};
 		const onDocumentMove = (e: PointerEvent) => {
-			if (!model) return;
+			// 睡眠中 ticker 已停，写参数只会让唤醒第一帧闪一个怪表情
+			if (!model || sleeping) return;
 			const p = toCanvasPoint(e);
 			model.focus(p.x, p.y);
 		};
 		const onDocumentOut = (e: MouseEvent) => {
 			// relatedTarget 为空才是真正离开窗口，切标签页/悬停浏览器 UI 时触发
-			if (e.relatedTarget || !model) return;
+			if (e.relatedTarget || !model || sleeping) return;
 			model.focus(container.clientWidth / 2, container.clientHeight / 2);
 		};
 		document.addEventListener("pointermove", onDocumentMove, {
@@ -872,11 +985,33 @@ const size =
 			try {
 				const extract = (app.renderer as any).plugins?.extract;
 				if (!extract || !model) return null;
-				const full: HTMLCanvasElement = extract.canvas(app.stage);
 				const im = model.internalModel;
 				const core = im.coreModel;
 				const iw = im.width;
 				const ih = im.height;
+				// 睡颜帧：借 beforeModelUpdate 钩子（动作求值后、绘制前）阖眼并
+				// 让头微微一歪，快照里就是真的睡着的样子；泵 1ms 触发一次重绘，
+				// 帧末 loadParameters 会把参数复原，不影响之后的动画。
+				const eyeHandles = im.motionManager?.eyeBlinkIds ?? [];
+				const angleZHandle = im.idParamAngleZ;
+				const onSleepPose = () => {
+					for (const h of eyeHandles) {
+						core.setParameterValueByIndex(core.getParameterIndex(h), 0.02);
+					}
+					if (angleZHandle) {
+						core.setParameterValueById(angleZHandle, -6);
+					}
+				};
+				im.on?.("beforeModelUpdate", onSleepPose);
+				let full: HTMLCanvasElement;
+				try {
+					model.update(1); // 累积 dt，让接下来的 extract 消费并重绘一帧
+					full = extract.canvas(app.stage);
+				} finally {
+					// 摘钩子必须放 finally：extract 中途抛异常时钩子若残留，
+					// 模型从此每帧闭眼歪头
+					im.off?.("beforeModelUpdate", onSleepPose);
+				}
 				const n = core.getDrawableCount();
 				let minX = Infinity;
 				let maxX = -Infinity;
@@ -985,11 +1120,22 @@ const size =
 			el.className = "l2d-ball";
 			el.setAttribute("aria-label", "看板娘休眠中，点击唤醒");
 			el.title = "看板娘休眠中，点击唤醒";
+			// 球面单独一层：圆形裁剪只作用于头像，Zzz 气泡字浮在球外不被裁
+			const face = document.createElement("div");
+			face.className = "l2d-ball-face";
 			const img = document.createElement("img");
 			img.src = takeSnapshot() ?? container.dataset.sleepIcon ?? "";
 			img.alt = "";
 			img.draggable = false; // 禁掉原生图片拖拽，别跟球的拖动抢事件
-			el.appendChild(img);
+			face.appendChild(img);
+			el.appendChild(face);
+			for (let i = 1; i <= 3; i++) {
+				const z = document.createElement("span");
+				z.className = `l2d-z l2d-z${i}`;
+				z.textContent = "Z";
+				z.setAttribute("aria-hidden", "true");
+				el.appendChild(z);
+			}
 			// 默认落在容器右上角附近；拖过的位置有记忆
 			const rect = container.getBoundingClientRect();
 			const saved = readBallPosition();
@@ -997,20 +1143,32 @@ const size =
 			el.style.top = `${Math.max(0, saved?.top ?? rect.top + 8)}px`;
 
 			// 拖动与点击的区分：按住后位移超过 6px 算拖动（松手记忆位置），
-			// 否则算点击唤醒。pointermove 必须先确认按住中——否则鼠标划过球体
-			// 就会被当成拖动，球会自己跟着光标跑。
+			// 否则算点击唤醒。所有事件 stopPropagation：球在容器内部，冒泡到
+			// 容器会触发模型拖动的长按计时器，150ms 后容器 setPointerCapture
+			// 抢走指针，球的 pointerup 从此收不到——球就"黏"在光标上，
+			// 直到再点一下（而那一下 moved=false，又变成唤醒）。
 			// pointerdown 必须 preventDefault：球面是 <img>，不拦住的话按下后
-			// 浏览器会启动原生图片拖拽，pointer 事件序列被 pointercancel 掐断，
-			// 拖动就失效了。
+			// 浏览器会启动原生图片拖拽，pointer 事件序列被 pointercancel 掐断。
 			let pressing = false;
 			let downX = 0;
 			let downY = 0;
 			let startLeft = 0;
 			let startTop = 0;
 			let moved = false;
+			let capturedPointer = 0;
+			const releaseCapture = () => {
+				if (!capturedPointer) return;
+				try {
+					el.releasePointerCapture?.(capturedPointer);
+				} catch {
+					/* 指针可能已释放 */
+				}
+				capturedPointer = 0;
+			};
 			el.addEventListener("pointerdown", (e) => {
 				if (e.button !== 0) return;
 				e.preventDefault();
+				e.stopPropagation();
 				pressing = true;
 				downX = e.clientX;
 				downY = e.clientY;
@@ -1019,25 +1177,44 @@ const size =
 				moved = false;
 				try {
 					el.setPointerCapture?.(e.pointerId);
+					capturedPointer = e.pointerId;
 				} catch {
 					/* 指针可能已释放 */
 				}
 			});
 			el.addEventListener("pointermove", (e) => {
-				if (!pressing) return;
+				e.stopPropagation();
+				// 无按键的移动一律忽略（pointermove 不带按键信息，用
+				// buttons 位掩码判），防御历史残留的 pressing 状态
+				if (!pressing || e.buttons === 0) {
+					if (!pressing) return;
+					// 按住标记还在但按键已不在：自愈，别再黏着光标
+					pressing = false;
+					moved = false;
+					releaseCapture();
+					return;
+				}
 				const dx = e.clientX - downX;
 				const dy = e.clientY - downY;
 				if (!moved && Math.hypot(dx, dy) <= 6) return;
-				moved = true;
+				if (!moved) {
+					moved = true;
+					el.classList.add("l2d-ball-dragging");
+				}
 				const next = clampPosition(el, startLeft + dx, startTop + dy);
 				el.style.left = `${next.left}px`;
 				el.style.top = `${next.top}px`;
 			});
-			el.addEventListener("pointerup", () => {
+			el.addEventListener("pointerup", (e) => {
+				e.stopPropagation();
 				const wasPressing = pressing;
 				pressing = false;
+				releaseCapture();
+				el.classList.remove("l2d-ball-dragging");
 				if (!wasPressing) return;
 				if (!moved) {
+					// 唤醒前先播一圈确认波纹，收缩退场与它重叠播放
+					el.classList.add("l2d-ball-pulse");
 					wake();
 					return;
 				}
@@ -1053,6 +1230,9 @@ const size =
 			});
 			el.addEventListener("pointercancel", () => {
 				pressing = false;
+				moved = false;
+				releaseCapture();
+				el.classList.remove("l2d-ball-dragging");
 			});
 			container.appendChild(el);
 			return el;
@@ -1085,8 +1265,14 @@ const size =
 			if (!sleeping) return;
 			sleeping = false;
 			autoAsleep = false;
-			ball?.remove();
-			ball = null;
+			if (ball) {
+				// 收缩退场后再移除，跟模型的滑入衔接；container 清空时节点
+				// 会随之消失，这里只需摘掉引用
+				const b = ball;
+				b.classList.add("l2d-ball-out");
+				window.setTimeout(() => b.remove(), 220);
+				ball = null;
+			}
 			window.clearTimeout(pauseTimer);
 			app.ticker.start();
 			container.classList.remove("l2d-sleeping");
@@ -1163,7 +1349,13 @@ const size =
 		// ---- 拖动（长按启动，位置记忆）----
 		// 动画只作用于内层 stage（transform/opacity），拖动只改容器 left/top，
 		// 两者互不干扰。
-		const dragDetach = setupDrag(container, stage, draggable);
+		const dragDetach = setupDrag(
+			container,
+			stage,
+			draggable,
+			() => sleeping,
+			refreshCanvasRect,
+		);
 		controller.resetPosition = () => {
 			container.style.left = "";
 			container.style.top = "";
@@ -1220,6 +1412,7 @@ const size =
 		}
 
 		const onResize = () => {
+			refreshCanvasRect(); // 画布位置变了，跟随用的矩形缓存作废
 			const visible = applyResponsive();
 			// 隐藏期间跳过加载，重新可见时再懒加载（此前失败过就重试同一个）；
 			// 休眠态不加载，唤醒时才补
@@ -1335,6 +1528,8 @@ const size =
 			longPressMs?: number;
 			savePosition?: boolean;
 		},
+		isSleeping: () => boolean,
+		onContainerMoved?: () => void,
 	): () => void {
 		if (draggable.enable === false) return () => {};
 
@@ -1369,6 +1564,10 @@ const size =
 
 		const onPointerDown = (event: PointerEvent) => {
 			if (event.button !== 0) return;
+			// 睡眠时容器的拖动旁路：此时模型已滑出，容器只剩隐形区域，
+			// 长按会启动幽灵拖动、还会抢走悬浮球的指针捕获（pointerup 被
+			// 钳断，球就"黏"在光标上）
+			if (isSleeping()) return;
 			clearPressTimer();
 			pressTimer = window.setTimeout(() => {
 				pressTimer = null;
@@ -1427,6 +1626,8 @@ const size =
 			const final = clampPosition(container, rect.left, rect.top);
 			container.style.left = `${final.left}px`;
 			container.style.top = `${final.top}px`;
+			// 容器动了，画布也跟着动；作废跟随用的矩形缓存
+			onContainerMoved?.();
 			if (draggable.savePosition !== false) {
 				savePosition(final.left, final.top);
 			}
