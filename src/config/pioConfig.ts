@@ -179,6 +179,12 @@ export const live2dWidgetConfig: Live2DWidgetConfig = {
 		// 移动端断点
 		mobileBreakpoint: 768,
 	},
+	// 休眠配置：休眠时缩成悬浮球（头部快照，可拖动），点球唤醒；
+	// 刷新后保持休眠状态；切走标签页自动休眠、回来唤醒
+	sleep: {
+		// 无操作多少分钟后自动休眠，0 = 关闭
+		autoSleepMinutes: 5,
+	},
 	// 拖动配置
 	draggable: {
 		// 是否允许拖动看板娘

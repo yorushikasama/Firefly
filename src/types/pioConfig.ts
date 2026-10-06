@@ -89,6 +89,11 @@ export type Live2DWidgetConfig = {
 		hideOnMobile?: boolean; // 是否在移动端隐藏
 		mobileBreakpoint?: number; // 移动端断点，默认 768
 	};
+	sleep?: {
+		// 无操作多少分钟后自动休眠，0 = 关闭自动休眠，默认 5。
+		// 菜单手动休眠与切走标签页休眠不受此项影响，始终开启
+		autoSleepMinutes?: number;
+	};
 	draggable?: {
 		enable?: boolean; // 是否允许拖动看板娘，默认 true
 		longPressMs?: number; // 长按多久后才进入拖动，默认 150（避免抢走单击换动作）

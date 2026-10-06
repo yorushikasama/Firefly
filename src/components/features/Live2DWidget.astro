@@ -63,6 +63,9 @@ interface Props {
 			longPressMs?: number;
 			savePosition?: boolean;
 		};
+		sleep?: {
+			autoSleepMinutes?: number;
+		};
 	};
 }
 
@@ -141,6 +144,8 @@ const size =
 	data-tips={JSON.stringify(config.tips || {})}
 	data-responsive={JSON.stringify(config.responsive || {})}
 	data-draggable={JSON.stringify(config.draggable || {})}
+	data-sleep={JSON.stringify(config.sleep || {})}
+	data-sleep-icon={inlineIcon("mdi:sleep") ?? ""}
 	data-github-url={profileGithubUrl}
 >
 </div>
@@ -271,12 +276,64 @@ const size =
 	#l2d-widget-container .l2d-status.l2d-status-clickable:hover {
 		filter: brightness(1.1);
 	}
-	/* 休眠时容器只留状态条，别再响应拖动 */
+	/* 休眠时容器不再响应交互，只有悬浮球可点 */
 	#l2d-widget-container.l2d-sleeping {
 		pointer-events: none;
 	}
 	#l2d-widget-container.l2d-sleeping .l2d-status {
 		pointer-events: auto;
+	}
+	/* 悬浮球：休眠形态。fixed 定位按视口坐标，可拖出容器范围 */
+	#l2d-widget-container .l2d-ball {
+		position: fixed;
+		width: 56px;
+		height: 56px;
+		border-radius: 50%;
+		overflow: hidden;
+		border: 2px solid var(--l2d-primary);
+		box-shadow: 0 2px 10px rgb(0 0 0 / 30%);
+		cursor: pointer;
+		pointer-events: auto;
+		touch-action: none;
+		animation: l2d-ball-float 3.2s ease-in-out infinite;
+	}
+	#l2d-widget-container .l2d-ball:hover {
+		border-color: var(--l2d-primary);
+		filter: brightness(1.08);
+	}
+	#l2d-widget-container .l2d-ball img {
+		width: 100%;
+		height: 100%;
+		display: block;
+		object-fit: cover;
+		-webkit-user-drag: none;
+	}
+	/* 球角上的「Zzz」角标 */
+	#l2d-widget-container .l2d-ball::after {
+		content: "Zzz";
+		position: absolute;
+		right: -2px;
+		bottom: -2px;
+		background: var(--l2d-primary);
+		color: #fff;
+		font-size: 9px;
+		line-height: 1;
+		padding: 3px 4px;
+		border-radius: 6px 0 6px 0;
+	}
+	@keyframes l2d-ball-float {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-5px);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		#l2d-widget-container .l2d-ball {
+			animation: none;
+		}
 	}
 </style>
 
@@ -289,10 +346,11 @@ const size =
 		MotionPriority,
 	} from "pixi-live2d-display/cubism4";
 
-	// CubismFramework 运行时有导出但类型声明缺失，经 ID 管理器换取参数句柄用
-	const CubismFramework = (PixiLive2d as any).CubismFramework as {
-		getIdManager: () => { getId: (id: string) => unknown };
-	};
+	// CubismFramework 运行时有导出但类型声明缺失；内嵌 Framework 变体实测
+	// 没有 getIdManager 静态方法，仅作 lipSyncIds 缺失时的兜底
+	const CubismFramework = (PixiLive2d as any).CubismFramework as
+		| { getIdManager?: () => { getId: (id: string) => unknown } }
+		| undefined;
 
 	// 官方 Core（自托管脚本）挂载的全局
 	declare global {
@@ -314,6 +372,8 @@ const size =
 	}
 
 	const POSITION_STORAGE_KEY = "live2dPosition";
+	const SLEEP_STORAGE_KEY = "live2dSleeping";
+	const BALL_POSITION_KEY = "live2dBallPosition";
 	const TAP_THROTTLE_MS = 2500;
 	const TAP_MAX_DURATION_MS = 400;
 	const TAP_MAX_DELTA_PX = 8;
@@ -390,6 +450,7 @@ const size =
 		const tips = JSON.parse(container.dataset.tips || "{}");
 		const responsive = JSON.parse(container.dataset.responsive || "{}");
 		const draggable = JSON.parse(container.dataset.draggable || "{}");
+		const sleepConfig = JSON.parse(container.dataset.sleep || "{}");
 
 		if (primaryColor) {
 			container.style.setProperty("--l2d-primary", primaryColor);
@@ -502,13 +563,25 @@ const size =
 		};
 
 		const resolveMouthParamIndex = (): number => {
-			if (!model?.internalModel?.coreModel) return -1;
-			const core = model.internalModel.coreModel;
-			// Framework 的 CubismModel 只接受 CubismIdHandle 查参，先经 ID 管理器换句柄
-			const id = CubismFramework.getIdManager().getId(
-				typing?.param || "ParamMouthOpenY",
-			);
-			return core.getParameterIndex(id);
+			try {
+				if (!model?.internalModel?.coreModel) return -1;
+				const im = model.internalModel;
+				const core = im.coreModel;
+				// Framework 的 CubismModel 查参只认 CubismIdHandle，而内嵌 Framework
+				// 变体没有 CubismFramework.getIdManager() 静态方法。model3.json 的
+				// LipSync 组已被 motionManager 解析成现成句柄，直接取用；组缺失时
+				// 才回退到 typing.param 指定的参数名经 ID 管理器解析。
+				const lipHandle = im.motionManager?.lipSyncIds?.[0];
+				if (lipHandle) return core.getParameterIndex(lipHandle);
+				const idManager = CubismFramework?.getIdManager?.();
+				if (!idManager) return -1;
+				return core.getParameterIndex(
+					idManager.getId(typing?.param || "ParamMouthOpenY"),
+				);
+			} catch {
+				// 口型解析失败只应降级成「无口型」，绝不能炸掉整个加载流程
+				return -1;
+			}
 		};
 
 		const onBeforeModelUpdate = () => {
@@ -764,9 +837,12 @@ const size =
 			stage.appendChild(box);
 		}
 
-		// ---- 休眠 / 唤醒 / 失败重试 ----
-		// 状态条是唯一的非画布交互入口：休息点击唤醒、加载失败点击重试。
-		// failedAt 记录失败的是哪个模型，重试加载同一个而不是从头来
+		// ---- 休眠（悬浮球）/ 唤醒 / 失败重试 ----
+		// 休眠时模型滑出、缩成一颗 56px 悬浮球（球面 = 头部快照，模型未加载时
+		// 用内置图标兜底），可拖动、点球唤醒；渲染循环随之暂停省 GPU。
+		// 触发：菜单休眠（手动，持久化）/ 无操作超时（自动）/ 切走标签页（自动）。
+		// 手动休眠跨刷新保持；自动休眠（含标签页触发）不持久化，任何活动即醒。
+		// failedAt 记录加载失败的是哪个模型，点状态条重试同一个而不是从头来。
 		let failedAt: number | null = null;
 		const describeError = (e: unknown): string => {
 			const msg = e instanceof Error ? e.message : String(e);
@@ -786,27 +862,257 @@ const size =
 			failedAt = index;
 			showStatus(describeError(e), true);
 		};
+
+		// 头部快照：把当前舞台渲染结果裁成方图。裁剪区域按头部相关网格的实际
+		// 包围盒计算（待机动作/物理会把头挤离固定位置，按比例硬猜会裁偏）。
+		// 注意用 InternalModel.getDrawableBounds（逻辑坐标，与 toModelPosition
+		// 同空间）；核心层 getDrawableVertices 是另一套归一空间，别混用。
+		// extract 插件自己走一遍渲染管线，不依赖 preserveDrawingBuffer。
+		const takeSnapshot = (): string | null => {
+			try {
+				const extract = (app.renderer as any).plugins?.extract;
+				if (!extract || !model) return null;
+				const full: HTMLCanvasElement = extract.canvas(app.stage);
+				const im = model.internalModel;
+				const core = im.coreModel;
+				const iw = im.width;
+				const ih = im.height;
+				const n = core.getDrawableCount();
+				let minX = Infinity;
+				let maxX = -Infinity;
+				let minY = Infinity;
+				let maxY = -Infinity;
+				let face: { x: number; y: number; w: number; h: number } | null = null;
+				for (let i = 0; i < n; i++) {
+					// 只取头部部件。锚定 ArtMesh 前缀做整词匹配：裸的 /Ear/ 会作为
+					// 子串命中 Footwear/Legwear/Topwear/Handwear（含 wear→ear），
+					// 把包围盒一路拽到脚部，快照就裁成衣服了
+					const id = core.getDrawableId(i);
+					if (
+						!/^ArtMesh(Face|FrontHair|Headwear|Eyelash|Eyewhite|Irides|Eyebrow|Nose|Mouth|Ears)/i.test(
+							id,
+						)
+					) {
+						continue;
+					}
+					const b = im.getDrawableBounds(i, {
+						x: 0,
+						y: 0,
+						width: 0,
+						height: 0,
+					});
+					if (!b || !Number.isFinite(b.x)) continue;
+					minX = Math.min(minX, b.x);
+					maxX = Math.max(maxX, b.x + b.width);
+					minY = Math.min(minY, b.y);
+					maxY = Math.max(maxY, b.y + b.height);
+					// Face 网格单独记下：它是头像裁剪的锚点
+					if (/^ArtMeshFace$/i.test(id)) {
+						face = { x: b.x, y: b.y, w: b.width, h: b.height };
+					}
+				}
+				if (!Number.isFinite(minX)) return null;
+			// extract.canvas 输出的像素网格 = stage 本地包围盒（模型逻辑画布 ×
+			// 模型缩放），原点在包围盒左上角——不是屏幕画布，与 dpr 无关。
+			// 逻辑坐标 → extract 坐标：先按 anchor 换到 stage 坐标，再减包围盒原点。
+			const stageBounds = app.stage.getLocalBounds();
+			const toExtractX = (lx: number) =>
+				model.position.x + (lx - 0.5 * iw) * model.scale.x - stageBounds.x;
+			const toExtractY = (ly: number) =>
+				model.position.y + (ly - ih) * model.scale.y - stageBounds.y;
+			// 头像式裁剪：有 Face 网格就以脸中心为锚、边长按脸高放大约 1.7 倍
+			//（盖住头发）；没有 Face 的模型退回头部部件并集
+			let cx: number;
+			let cy: number;
+			let sideLogical: number;
+			if (face) {
+				cx = toExtractX(face.x + face.w / 2);
+				cy = toExtractY(face.y + face.h / 2);
+				sideLogical = Math.max(face.w, face.h) * 1.7;
+			} else {
+				cx = toExtractX((minX + maxX) / 2);
+				cy = toExtractY((minY + maxY) / 2);
+				sideLogical = Math.max(maxX - minX, maxY - minY) * 1.15;
+			}
+			const side = Math.min(
+				sideLogical * model.scale.x,
+				full.width,
+				full.height,
+			);
+			const sx = Math.min(Math.max(0, cx - side / 2), full.width - side);
+			const sy = Math.min(Math.max(0, cy - side / 2), full.height - side);
+			const out = document.createElement("canvas");
+			out.width = out.height = 112;
+			out.getContext("2d")?.drawImage(
+				full,
+				sx,
+				sy,
+				side,
+				side,
+				0,
+				0,
+				112,
+				112,
+			);
+			return out.toDataURL("image/png");
+			} catch {
+				return null;
+			}
+		};
+
+		let sleeping = false;
+		let autoAsleep = false;
+		let ball: HTMLDivElement | null = null;
+		let pauseTimer = 0;
+		let idleTimer = 0;
+
+		const readBallPosition = (): { left: number; top: number } | null => {
+			try {
+				const raw = localStorage.getItem(BALL_POSITION_KEY);
+				if (!raw) return null;
+				const parsed = JSON.parse(raw);
+				if (typeof parsed?.left !== "number" || typeof parsed?.top !== "number") {
+					return null;
+				}
+				return parsed;
+			} catch {
+				return null;
+			}
+		};
+
+		const buildBall = (): HTMLDivElement => {
+			const el = document.createElement("div");
+			el.className = "l2d-ball";
+			el.setAttribute("aria-label", "看板娘休眠中，点击唤醒");
+			el.title = "看板娘休眠中，点击唤醒";
+			const img = document.createElement("img");
+			img.src = takeSnapshot() ?? container.dataset.sleepIcon ?? "";
+			img.alt = "";
+			img.draggable = false; // 禁掉原生图片拖拽，别跟球的拖动抢事件
+			el.appendChild(img);
+			// 默认落在容器右上角附近；拖过的位置有记忆
+			const rect = container.getBoundingClientRect();
+			const saved = readBallPosition();
+			el.style.left = `${Math.max(0, saved?.left ?? rect.right - 72)}px`;
+			el.style.top = `${Math.max(0, saved?.top ?? rect.top + 8)}px`;
+
+			// 拖动与点击的区分：按住后位移超过 6px 算拖动（松手记忆位置），
+			// 否则算点击唤醒。pointermove 必须先确认按住中——否则鼠标划过球体
+			// 就会被当成拖动，球会自己跟着光标跑。
+			// pointerdown 必须 preventDefault：球面是 <img>，不拦住的话按下后
+			// 浏览器会启动原生图片拖拽，pointer 事件序列被 pointercancel 掐断，
+			// 拖动就失效了。
+			let pressing = false;
+			let downX = 0;
+			let downY = 0;
+			let startLeft = 0;
+			let startTop = 0;
+			let moved = false;
+			el.addEventListener("pointerdown", (e) => {
+				if (e.button !== 0) return;
+				e.preventDefault();
+				pressing = true;
+				downX = e.clientX;
+				downY = e.clientY;
+				startLeft = Number.parseFloat(el.style.left) || 0;
+				startTop = Number.parseFloat(el.style.top) || 0;
+				moved = false;
+				try {
+					el.setPointerCapture?.(e.pointerId);
+				} catch {
+					/* 指针可能已释放 */
+				}
+			});
+			el.addEventListener("pointermove", (e) => {
+				if (!pressing) return;
+				const dx = e.clientX - downX;
+				const dy = e.clientY - downY;
+				if (!moved && Math.hypot(dx, dy) <= 6) return;
+				moved = true;
+				const next = clampPosition(el, startLeft + dx, startTop + dy);
+				el.style.left = `${next.left}px`;
+				el.style.top = `${next.top}px`;
+			});
+			el.addEventListener("pointerup", () => {
+				const wasPressing = pressing;
+				pressing = false;
+				if (!wasPressing) return;
+				if (!moved) {
+					wake();
+					return;
+				}
+				const r = el.getBoundingClientRect();
+				try {
+					localStorage.setItem(
+						BALL_POSITION_KEY,
+						JSON.stringify({ left: r.left, top: r.top }),
+					);
+				} catch {
+					/* 位置记忆是增强功能 */
+				}
+			});
+			el.addEventListener("pointercancel", () => {
+				pressing = false;
+			});
+			container.appendChild(el);
+			return el;
+		};
+
+		const sleep = (reason: "manual" | "auto" | "hidden") => {
+			if (sleeping) return;
+			sleeping = true;
+			autoAsleep = reason !== "manual";
+			container.classList.add("l2d-sleeping");
+			stage.classList.add("l2d-hidden");
+			if (reason === "manual") {
+				try {
+					localStorage.setItem(SLEEP_STORAGE_KEY, "1");
+				} catch {
+					/* 状态持久化是增强功能 */
+				}
+			}
+			ball = buildBall();
+			// 出场动画播完再暂停渲染循环：休眠期间不烧 GPU
+			pauseTimer = window.setTimeout(() => {
+				if (sleeping) app.ticker.stop();
+			}, transitionDuration + 100);
+			window.clearInterval(tipsTimer);
+			typingState.active = false;
+			window.clearInterval(typingState.timer);
+		};
+
 		const wake = () => {
+			if (!sleeping) return;
+			sleeping = false;
+			autoAsleep = false;
+			ball?.remove();
+			ball = null;
+			window.clearTimeout(pauseTimer);
+			app.ticker.start();
 			container.classList.remove("l2d-sleeping");
 			stage.classList.remove("l2d-hidden");
-			hideStatus();
+			try {
+				localStorage.setItem(SLEEP_STORAGE_KEY, "0");
+			} catch {
+				/* 同上 */
+			}
+			if (!model) {
+				// 入睡态启动（刷新前是休眠状态）时模型未加载，唤醒时补加载
+				loadModel(0).catch((e) => onLoadFail(0, e));
+			} else {
+				startTipsRotation();
+			}
 		};
+
 		statusPill.addEventListener("click", () => {
-			const text = statusPill.textContent ?? "";
-			if (text.includes("休息")) {
-				wake();
-			} else if (failedAt !== null) {
+			if (failedAt !== null) {
 				const index = failedAt;
 				failedAt = null;
 				showStatus("正在加载");
 				loadModel(index).catch((e) => onLoadFail(index, e));
 			}
 		});
-		controller.sleep = () => {
-			container.classList.add("l2d-sleeping");
-			stage.classList.add("l2d-hidden");
-			showStatus("正在休息", true);
-		};
+		controller.sleep = () => sleep("manual");
 		controller.switchModel = (index: number) => {
 			if (models.length < 2 || index === currentModelIndex) return;
 			showStatus("切换中");
@@ -815,6 +1121,45 @@ const size =
 				hideStatus();
 			});
 		};
+
+		// ---- 自动休眠触发 ----
+		// 切走标签页自动睡、回来唤醒；无操作超过阈值自动睡、任何输入立即醒
+		//（仅自动休眠态；手动休眠只认点球唤醒）。
+		const autoSleepMinutes = Math.max(
+			0,
+			sleepConfig?.autoSleepMinutes ?? 5,
+		);
+		const onVisibilityChange = () => {
+			if (document.hidden) {
+				if (!sleeping && model) sleep("hidden");
+			} else if (autoAsleep) {
+				wake();
+			}
+		};
+		const resetIdleTimer = () => {
+			window.clearTimeout(idleTimer);
+			if (!autoSleepMinutes) return;
+			idleTimer = window.setTimeout(
+				() => {
+					if (!sleeping && model) sleep("auto");
+				},
+				autoSleepMinutes * 60_000,
+			);
+		};
+		const onUserActivity = () => {
+			resetIdleTimer();
+			if (sleeping && autoAsleep) wake();
+		};
+		document.addEventListener("visibilitychange", onVisibilityChange);
+		for (const evt of [
+			"pointermove",
+			"pointerdown",
+			"keydown",
+			"wheel",
+			"scroll",
+		] as const) {
+			document.addEventListener(evt, onUserActivity, { passive: true });
+		}
 		// ---- 拖动（长按启动，位置记忆）----
 		// 动画只作用于内层 stage（transform/opacity），拖动只改容器 left/top，
 		// 两者互不干扰。
@@ -841,7 +1186,20 @@ const size =
 		};
 
 		// ---- 首次加载 ----
-		if (applyResponsive()) {
+		// 上次手动休眠过则直接以悬浮球入睡态启动：不加载模型不跑渲染，
+		// 点球唤醒时再补加载
+		const savedSleeping = (() => {
+			try {
+				return localStorage.getItem(SLEEP_STORAGE_KEY) === "1";
+			} catch {
+				return false;
+			}
+		})();
+		if (savedSleeping) {
+			sleeping = true;
+			container.classList.add("l2d-sleeping");
+			ball = buildBall();
+		} else if (applyResponsive()) {
 			loadModel(0).catch((e) => onLoadFail(0, e));
 		}
 
@@ -850,6 +1208,9 @@ const size =
 			(window as any).__l2dDebug = {
 				get model() {
 					return model;
+				},
+				get sleeping() {
+					return sleeping;
 				},
 				app,
 				sleep: () => controller.sleep(),
@@ -860,8 +1221,9 @@ const size =
 
 		const onResize = () => {
 			const visible = applyResponsive();
-			// 隐藏期间跳过加载，重新可见时再懒加载（此前失败过就重试同一个）
-			if (visible && !model) {
+			// 隐藏期间跳过加载，重新可见时再懒加载（此前失败过就重试同一个）；
+			// 休眠态不加载，唤醒时才补
+			if (visible && !model && !sleeping) {
 				const index = failedAt ?? 0;
 				failedAt = null;
 				loadModel(index).catch((e) => onLoadFail(index, e));
@@ -883,6 +1245,21 @@ const size =
 				dragDetach();
 				window.removeEventListener("resize", onResize);
 				document.removeEventListener("swup:page:view", onSwupPageView);
+				document.removeEventListener(
+					"visibilitychange",
+					onVisibilityChange,
+				);
+				for (const evt of [
+					"pointermove",
+					"pointerdown",
+					"keydown",
+					"wheel",
+					"scroll",
+				] as const) {
+					document.removeEventListener(evt, onUserActivity);
+				}
+				window.clearTimeout(idleTimer);
+				window.clearTimeout(pauseTimer);
 				for (const t of timers) window.clearInterval(t);
 				window.clearInterval(tipsTimer);
 				window.clearTimeout(bubbleTimer);
