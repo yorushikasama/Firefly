@@ -94,21 +94,21 @@ export const siteConfig: SiteConfig = {
 		},
 		{
 			// 图标文件路径
-			src: "/favicon/firefly-32.png",
+			src: "/favicon/yuzuriha-32.png",
 			// 可选，图标大小
 			sizes: "32x32",
 		},
 		{
-			src: "/favicon/firefly-128.png",
+			src: "/favicon/yuzuriha-128.png",
 			sizes: "128x128",
 		},
 		{
 			// 180x180 单独用于 apple-touch-icon（iOS 主屏）
-			src: "/favicon/firefly-180.png",
+			src: "/favicon/yuzuriha-180.png",
 			sizes: "180x180",
 		},
 		{
-			src: "/favicon/firefly-192.png",
+			src: "/favicon/yuzuriha-192.png",
 			sizes: "192x192",
 		},
 	],
