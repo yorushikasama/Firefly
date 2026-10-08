@@ -88,6 +88,10 @@ export type Live2DWidgetConfig = {
 	responsive?: {
 		hideOnMobile?: boolean; // 是否在移动端隐藏
 		mobileBreakpoint?: number; // 移动端断点，默认 768
+		adaptive?: boolean; // 是否随视口自适应缩放尺寸，默认 false（保持 size 固定）
+		referenceViewport?: { width: number; height: number }; // size 对应的参考视口，默认 1280×720
+		minFactor?: number; // 缩放系数下限，默认 0.6
+		maxFactor?: number; // 缩放系数上限，默认 1.6
 	};
 	sleep?: {
 		// 无操作多少分钟后自动休眠，0 = 关闭自动休眠，默认 5。

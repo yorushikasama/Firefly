@@ -178,6 +178,14 @@ export const live2dWidgetConfig: Live2DWidgetConfig = {
 		hideOnMobile: true,
 		// 移动端断点
 		mobileBreakpoint: 768,
+		// 尺寸随视口自适应：size 视作「参考视口下的尺寸」，按当前视口与参考视口
+		// 较小边的比例缩放（大屏变大、小屏变小），再夹在 min/maxFactor 之间
+		adaptive: true,
+		// size 对应的参考视口，默认 1280×720
+		referenceViewport: { width: 1280, height: 720 },
+		// 缩放系数上下限，防止大屏过高、小屏过小
+		minFactor: 0.6,
+		maxFactor: 1.5,
 	},
 	// 休眠配置：休眠时缩成悬浮球（头部快照，可拖动），点球唤醒；
 	// 刷新后保持休眠状态；切走标签页自动休眠、回来唤醒

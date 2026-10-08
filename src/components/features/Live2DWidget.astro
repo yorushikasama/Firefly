@@ -57,6 +57,10 @@ interface Props {
 		responsive?: {
 			hideOnMobile?: boolean;
 			mobileBreakpoint?: number;
+			adaptive?: boolean;
+			referenceViewport?: { width: number; height: number };
+			minFactor?: number;
+			maxFactor?: number;
 		};
 		draggable?: {
 			enable?: boolean;
@@ -143,6 +147,7 @@ const size =
 	data-menus={JSON.stringify(serializeMenus(config.menus))}
 	data-tips={JSON.stringify(config.tips || {})}
 	data-responsive={JSON.stringify(config.responsive || {})}
+	data-size={JSON.stringify(size)}
 	data-draggable={JSON.stringify(config.draggable || {})}
 	data-sleep={JSON.stringify(config.sleep || {})}
 	data-sleep-icon={inlineIcon("mdi:sleep") ?? ""}
@@ -554,6 +559,10 @@ const size =
 		const responsive = JSON.parse(container.dataset.responsive || "{}");
 		const draggable = JSON.parse(container.dataset.draggable || "{}");
 		const sleepConfig = JSON.parse(container.dataset.sleep || "{}");
+		const baseSize = JSON.parse(container.dataset.size || "{}") as {
+			width: number;
+			height: number;
+		};
 
 		if (primaryColor) {
 			container.style.setProperty("--l2d-primary", primaryColor);
@@ -567,6 +576,48 @@ const size =
 			container.style.left = "0";
 			container.style.bottom = "0";
 		}
+
+		// ---- 视口自适应尺寸 ----
+		// 配置里的 size 视为「参考视口下的尺寸」；adaptive 开启后按当前视口与参考
+		// 视口的较小边比例缩放，再夹在 minFactor~maxFactor 与视口占比上限内，
+		// 避免大屏上模型高过屏幕、小屏上小到看不清。关闭时保持固定尺寸（旧行为）。
+		const adaptive = responsive.adaptive === true;
+		const refViewport = {
+			width: responsive.referenceViewport?.width ?? 1280,
+			height: responsive.referenceViewport?.height ?? 720,
+		};
+		const minFactor = responsive.minFactor ?? 0.6;
+		const maxFactor = responsive.maxFactor ?? 1.6;
+		const computeSize = (): { width: number; height: number } => {
+			const baseW = baseSize.width || 300;
+			const baseH = baseSize.height || 300;
+			if (!adaptive) return { width: baseW, height: baseH };
+			const raw = Math.min(
+				window.innerWidth / refViewport.width,
+				window.innerHeight / refViewport.height,
+			);
+			const factor = Math.min(Math.max(raw, minFactor), maxFactor);
+			// 视口占比兜底：宽不超 45%、高不超 80%，窄屏横屏时模型不会横跨整页
+			return {
+				width: Math.min(baseW * factor, window.innerWidth * 0.45),
+				height: Math.min(baseH * factor, window.innerHeight * 0.8),
+			};
+		};
+		// 记住上次落到的尺寸，视图没变时跳过重建渲染缓冲的昂贵分支
+		let appliedSize = { width: 0, height: 0 };
+		const applySize = (): boolean => {
+			const s = computeSize();
+			const width = Math.round(s.width);
+			const height = Math.round(s.height);
+			if (width === appliedSize.width && height === appliedSize.height) {
+				return false;
+			}
+			container.style.width = `${width}px`;
+			container.style.height = `${height}px`;
+			appliedSize = { width, height };
+			return true;
+		};
+		applySize();
 
 		// ---- DOM 骨架 ----
 		container.innerHTML = "";
@@ -1361,6 +1412,8 @@ const size =
 			container.style.top = "";
 			container.style.right = "";
 			container.style.bottom = "";
+			delete container.dataset.l2dPositioned; // 回到角落锚定
+			refreshCanvasRect();
 			try {
 				localStorage.removeItem(POSITION_STORAGE_KEY);
 			} catch {
@@ -1411,18 +1464,48 @@ const size =
 			};
 		}
 
+		// 浏览器已把 resize 合到约一帧一次；这里再用尺寸比对挡掉「尺寸没变」的
+		// 重复调用（移动端地址栏收起等会触发 resize 但视口尺寸未变），只有真的
+		// 变了才重建帧缓冲
 		const onResize = () => {
-			refreshCanvasRect(); // 画布位置变了，跟随用的矩形缓存作废
+			// 先定可见性再量尺寸：display:none 期间 clientWidth 为 0，
+			// 此时 resize 渲染器会把画布做成 0×0，等重新可见时就没内容了
 			const visible = applyResponsive();
+			if (!visible) return;
+			const resized = applySize();
+			if (resized) {
+				app.renderer.resize(container.clientWidth, container.clientHeight);
+				fitModel();
+			}
+			refreshCanvasRect(); // 画布位置/尺寸变了，跟随用的矩形缓存作废
+			// 窗口变小后，拖动过的位置可能出界，重新钳回视口内。
+			// 只在「已脱离角落锚定」时钳位：锚定态由 right/bottom 定位，
+			// 写 left/top 会把容器顶到顶部，反而破坏布局
+			if (container.dataset.l2dPositioned === "1") {
+				const rect = container.getBoundingClientRect();
+				const clamped = clampPosition(container, rect.left, rect.top);
+				container.style.left = `${clamped.left}px`;
+				container.style.top = `${clamped.top}px`;
+			}
+			// 休眠中的悬浮球是 fixed 定位，窗口变小同样可能出界
+			if (ball) {
+				const b = clampPosition(
+					ball,
+					Number.parseFloat(ball.style.left) || 0,
+					Number.parseFloat(ball.style.top) || 0,
+				);
+				ball.style.left = `${b.left}px`;
+				ball.style.top = `${b.top}px`;
+			}
 			// 隐藏期间跳过加载，重新可见时再懒加载（此前失败过就重试同一个）；
 			// 休眠态不加载，唤醒时才补
-			if (visible && !model && !sleeping) {
+			if (!model && !sleeping) {
 				const index = failedAt ?? 0;
 				failedAt = null;
 				loadModel(index).catch((e) => onLoadFail(index, e));
 			}
 		};
-		window.addEventListener("resize", onResize);
+		window.addEventListener("resize", onResize, { passive: true });
 
 		// 切页后重置模型索引：挂件在 swup 管理范围之外，切页不会重建它，
 		// 不重置的话「切换模型」会从切页前的位置继续自增，与显示对不上。
@@ -1473,6 +1556,8 @@ const size =
 				container.style.top = "";
 				container.style.right = "";
 				container.style.bottom = "";
+				container.style.width = `${baseSize.width || 300}px`;
+				container.style.height = `${baseSize.height || 300}px`;
 			},
 		};
 	}
@@ -1544,6 +1629,8 @@ const size =
 			const clamped = clampPosition(container, saved.left, saved.top);
 			container.style.left = `${clamped.left}px`;
 			container.style.top = `${clamped.top}px`;
+			// 脱离角落锚定，改用 left/top 定位（resize 钳位据此判断）
+			container.dataset.l2dPositioned = "1";
 		}
 
 		let pressTimer: number | null = null;
@@ -1624,8 +1711,12 @@ const size =
 			// 松手时按钳制后的最终值落位，保证「屏幕上的位置」与「存下来的位置」一致
 			const rect = container.getBoundingClientRect();
 			const final = clampPosition(container, rect.left, rect.top);
+			container.style.bottom = "auto";
+			container.style.right = "auto";
 			container.style.left = `${final.left}px`;
 			container.style.top = `${final.top}px`;
+			// 拖动后脱离角落锚定，resize 钳位据此判断该不该写 left/top
+			container.dataset.l2dPositioned = "1";
 			// 容器动了，画布也跟着动；作废跟随用的矩形缓存
 			onContainerMoved?.();
 			if (draggable.savePosition !== false) {
