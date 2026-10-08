@@ -110,9 +110,13 @@ if (title) {
 
 const favicons: Favicon[] =
 	siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
-// apple-touch-icon：优先取 favicon 中的 png，否则取第一个
+// apple-touch-icon：优先取 180x180（iOS 主屏标准尺寸），否则取首个 png，
+// 最后才退回第一项。不能只取首个 png——列表里 32x32 往往排在前面，
+// 用 32px 当主屏图标会明显发虚。
 const appleTouchIcon =
-	favicons.find((f) => f.src.toLowerCase().endsWith(".png")) ?? favicons[0];
+	favicons.find((f) => f.sizes === "180x180") ??
+	favicons.find((f) => f.src.toLowerCase().endsWith(".png")) ??
+	favicons[0];
 
 // const siteLang = siteConfig.lang.replace('_', '-')
 if (!lang) {

@@ -221,10 +221,16 @@ export async function GET({
 	// Load and get static assets
 	let iconPath = "/favicon/favicon-dark-192.png";
 	if (siteConfig.favicon.length > 0) {
-		const pngFavicon = siteConfig.favicon.find((f) =>
-			f.src.toLowerCase().endsWith(".png"),
-		);
-		iconPath = (pngFavicon ?? siteConfig.favicon[0]).src;
+		// 挑最大的 png：OG 图里图标要按较大尺寸绘制，取列表首个会命中
+		// 32x32 小图导致发虚。.ico 不能解码，必须排除。
+		const rasters = siteConfig.favicon
+			.filter((f) => f.src.toLowerCase().endsWith(".png"))
+			.map((f) => {
+				const m = f.sizes?.match(/^(\d+)x(\d+)$/);
+				return { f, area: m ? Number(m[1]) * Number(m[2]) : 0 };
+			})
+			.sort((a, b) => b.area - a.area);
+		iconPath = (rasters[0]?.f ?? siteConfig.favicon[0]).src;
 	}
 
 	const hue = siteConfig.themeColor.hue;
