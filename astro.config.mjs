@@ -252,7 +252,7 @@ export default defineConfig({
 				if (pathname === "/guestbook/" && !siteConfig.pages.guestbook) {
 					return false;
 				}
-				// 书签导航 / 打赏页已下线：走环境变量开关（默认关），与页面组件的守卫保持一致，
+				// 书签导航已下线：走环境变量开关（默认关），与页面组件的守卫保持一致，
 				// 避免「页面已启用但 sitemap 不收录」或「页面已下线但 sitemap 仍收录」的错位
 				if (pathname === "/booknav/" && !isPageEnabledByEnv("booknav", false)) {
 					return false;
@@ -281,9 +281,6 @@ export default defineConfig({
 						!commentConfig.type ||
 						commentConfig.type === "none")
 				) {
-					return false;
-				}
-				if (pathname === "/sponsor/" && !isPageEnabledByEnv("sponsor", false)) {
 					return false;
 				}
 				return true;

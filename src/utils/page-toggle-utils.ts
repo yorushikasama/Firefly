@@ -29,7 +29,7 @@ function readPageEnv(key: string): unknown {
 
 // 读取单个页面开关：PUBLIC_PAGES_<KEY> 取 true/1/on 等为开、false/0/off 等为关
 // 未设置或取值无法识别时回退到 fallback。用于已从 siteConfig.pages 下线、
-// 但保留环境变量后门可临时重新启用的页面（booknav / sponsor）
+// 但保留环境变量后门可临时重新启用的页面（booknav）
 export function isPageEnabledByEnv(key: string, fallback: boolean): boolean {
 	const parsed = parseBooleanEnv(readPageEnv(key));
 	return parsed === undefined ? fallback : parsed;
