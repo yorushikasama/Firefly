@@ -162,6 +162,10 @@ const size =
 		user-select: none;
 		touch-action: none;
 		font-family: inherit;
+		/* 退场靠 stage 位移滑出，必须裁掉溢出部分，否则人物只是移到容器下方
+		   仍然可见（容器固定在视口边缘，露出的部分正好落进可视区）。
+		   悬浮球是 fixed 定位、不受此裁剪影响 */
+		overflow: hidden;
 	}
 	#l2d-widget-container .l2d-stage {
 		position: relative;
@@ -175,18 +179,27 @@ const size =
 		height: 100%;
 		display: block;
 	}
-	/* 入场/退场动画：slide 用位移、fade 用透明度，时长由脚本按配置写入 */
-	#l2d-widget-container.l2d-mode-slide .l2d-stage {
-		transition: transform var(--l2d-dur, 1500ms) ease;
-	}
-	#l2d-widget-container.l2d-mode-slide .l2d-stage.l2d-hidden {
-		transform: translateY(130%);
-	}
+	/* 入场/退场动画：slide 用位移、fade 用透明度，时长由脚本按配置写入。
+		退场一律叠加 opacity，保证任何残余像素都不会留在屏上 */
+	#l2d-widget-container.l2d-mode-slide .l2d-stage,
 	#l2d-widget-container.l2d-mode-fade .l2d-stage {
-		transition: opacity var(--l2d-dur, 1500ms) ease;
+		transition:
+			transform var(--l2d-dur, 1500ms) ease,
+			opacity var(--l2d-dur, 1500ms) ease;
+	}
+	/* 退场位移量按脚本写入的方向变量（默认向下）。容器 overflow:hidden 会
+		裁掉溢出部分，只靠位移滑不出可视区——人物高时尤其明显 */
+	#l2d-widget-container.l2d-mode-slide .l2d-stage.l2d-hidden {
+		transform: translateY(var(--l2d-exit-y, 130%));
+		opacity: 0;
 	}
 	#l2d-widget-container.l2d-mode-fade .l2d-stage.l2d-hidden {
 		opacity: 0;
+	}
+	/* 退场动画结束后彻底移出命中测试与合成层：canvas 尺寸可达数百像素，
+		仅靠 opacity:0 仍会参与光栅化 */
+	#l2d-widget-container .l2d-stage.l2d-gone {
+		visibility: hidden;
 	}
 	/* 菜单：悬停看板娘时浮现 */
 	#l2d-widget-container .l2d-menus {
@@ -898,6 +911,8 @@ const size =
 			}
 			fitModel();
 			hideStatus();
+			// 与 wake() 一致：两个退场类必须同帧一起摘，否则会闪一帧空白
+			stage.classList.remove("l2d-gone");
 			stage.classList.remove("l2d-hidden");
 			if (tips.enable !== false && tips.welcomeMessage?.length) {
 				showTypingBubble(
@@ -1289,11 +1304,31 @@ const size =
 			return el;
 		};
 
+		// 退场方向：往远离视口中心的一侧滑。默认配置下容器锚在左下角，
+		// 往下滑正好离开可视区；但用户拖动过看板娘（l2dPositioned）后它可能
+		// 在视口任意位置，固定往下移会滑向视口内部，看着像"没藏住"。
+		// 这里按容器中心相对视口中心的位置选方向，两种情况都能真正离开画面。
+		const applyExitDirection = () => {
+			const cRect = container.getBoundingClientRect();
+			// 容器被 display:none（移动端隐藏）或尺寸为 0 时无从判断，维持默认
+			if (!cRect.width || !cRect.height) {
+				container.style.setProperty("--l2d-exit-y", "130%");
+				return;
+			}
+			const centerY = cRect.top + cRect.height / 2;
+			const belowCenter = centerY >= window.innerHeight / 2;
+			container.style.setProperty(
+				"--l2d-exit-y",
+				belowCenter ? "130%" : "-130%",
+			);
+		};
+
 		const sleep = (reason: "manual" | "auto" | "hidden") => {
 			if (sleeping) return;
 			sleeping = true;
 			autoAsleep = reason !== "manual";
 			container.classList.add("l2d-sleeping");
+			applyExitDirection();
 			stage.classList.add("l2d-hidden");
 			if (reason === "manual") {
 				try {
@@ -1303,9 +1338,12 @@ const size =
 				}
 			}
 			ball = buildBall();
-			// 出场动画播完再暂停渲染循环：休眠期间不烧 GPU
+			// 出场动画播完再暂停渲染循环（同时彻底移出合成层）：休眠期间不烧 GPU
 			pauseTimer = window.setTimeout(() => {
-				if (sleeping) app.ticker.stop();
+				if (sleeping) {
+					app.ticker.stop();
+					stage.classList.add("l2d-gone");
+				}
 			}, transitionDuration + 100);
 			window.clearInterval(tipsTimer);
 			typingState.active = false;
@@ -1327,6 +1365,9 @@ const size =
 			window.clearTimeout(pauseTimer);
 			app.ticker.start();
 			container.classList.remove("l2d-sleeping");
+			// 先摘 l2d-gone 再摘 l2d-hidden：visibility:hidden 期间即使反向
+			// 位移/淡入也看不见，两个类必须同帧一起移除才不会闪一帧空白
+			stage.classList.remove("l2d-gone");
 			stage.classList.remove("l2d-hidden");
 			try {
 				localStorage.setItem(SLEEP_STORAGE_KEY, "0");
