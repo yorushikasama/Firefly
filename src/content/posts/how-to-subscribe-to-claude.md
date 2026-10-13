@@ -3,7 +3,9 @@ title: 如何订阅 Claude：住宅 IP、美区 Apple ID 与礼品卡充值完�
 published: 2026-10-09
 description: 没有海外信用卡也能订阅 Claude：从准备住宅 IP、配置代理与防泄漏，到注册美区 Apple ID、用支付宝买礼品卡充值，最后在 App 内完成订阅。附分流规则和「购买未完成」的排查方法。
 tags: [Claude, AI, 订阅教程, 美区AppleID, 住宅IP]
-category: 技术
+category: Claude
+series: "Claude 实战指南：从订阅开通到云端开发"
+seriesOrder: 1
 image: ./images/how-to-subscribe-to-claude.avif
 slug: how-to-subscribe-to-claude
 author: 楪祈
