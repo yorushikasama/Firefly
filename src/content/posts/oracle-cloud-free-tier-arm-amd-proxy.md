@@ -1,7 +1,8 @@
 ---
 title: 白嫖甲骨文 ARM + AMD 五台永久免费机：从轮询抢号到 Cloudflare 搭梯子
 published: 2026-06-02
-description: 甲骨文云 Always Free 的 ARM（A1.Flex）与 AMD（E2.1.Micro）是两套独立免费额度。本文记录一个 2022 年老号的实战：用 OCI CLI 体检账号、写轮询脚本蹲 21 小时抢到 3 台 ARM，又补抢 2 台 AMD；以及测速时被 TCP QoS 掐掉 150 倍带宽的排查过程、Cloudflare Tunnel 与双路代理架构的部署踩坑。
+updated: 2026-10-14
+description: 甲骨文云 Always Free 的 ARM（A1.Flex）与 AMD（E2.1.Micro）是两套独立免费额度。本文记录一个 2022 年老号的实战：用 OCI CLI 体检账号、写轮询脚本蹲 21 小时抢到 3 台 ARM，又补抢 2 台 AMD；以及测速时被 TCP QoS 掐掉 150 倍带宽的排查过程、Cloudflare Tunnel 与双路代理架构的部署踩坑。文末附 2026-10 复核：免费额度已降为 2 OCPU/12GB，文中命令与配额数字已按现状修订。
 tags: [Oracle Cloud, ARM, Cloudflare, 网络]
 category: 技术
 image: ./images/oracle-cloud-free-tier-arm-amd-proxy.avif
@@ -16,7 +17,9 @@ licenseUrl: https://creativecommons.org/licenses/by-nc/4.0/
 
 ## 起因：被遗忘的 2022 老号
 
-甲骨文云的 `VM.Standard.A1.Flex`（Ampere ARM）是目前最香的永久免费机型：每月送 3000 OCPU 小时 + 18000 GB 小时，折算下来够长期跑满 4 核 / 24G 内存 / 200G 块存储 / 10TB 月流量，可以拆成 1～4 台。问题是 99% 的人手动建会撞 `Out of host capacity`，核心套路只有一条：先把账号搞定，再用脚本 7×24 轮询 API 抢容量。
+甲骨文云的 `VM.Standard.A1.Flex`（Ampere ARM）是当时最香的永久免费机型：每月送 3000 OCPU 小时 + 18000 GB 小时，折算下来够长期跑满 4 核 / 24G 内存 / 200G 块存储 / 10TB 月流量，可以拆成 1～4 台。问题是 99% 的人手动建会撞 `Out of host capacity`，核心套路只有一条：先把账号搞定，再用脚本 7×24 轮询 API 抢容量。
+
+> **配额已调整（2026-10 复核）**：甲骨文已把 Always Free 的 A1 额度下调为 **1500 OCPU 小时 + 9000 GB 小时/月，即 2 OCPU + 12 GB 内存**，最多 1～2 台。本文记录的「4 核 24G、拆 3 台」是调整前的历史配置，**如今按新额度只能开 1 台 2C12G**（实际在东京租户上复核 `standard-a1-core-count` 的 limit 值就是 2）。下文涉及旧数字处已加注。
 
 我手里正好有张 2022 年注册的新加坡老号，等于直接跳过了最难的「过注册关」。先用 OCI CLI 给账号做了个体检：
 
@@ -32,9 +35,20 @@ openssl rsa -pubout -in oci_api_key.pem -out oci_api_key_public.pem
 
 把公钥贴进控制台，复制配置回填 `~/.oci/config`，鉴权一通，体检结果近乎完美：账号还是 `Always Free` 状态、历史上 0 台实例、A1 配额 4 OCPU + 24G 全额可用且零占用。能查到 A1 limit 这件事本身，就证明账号没被偷偷降级。唯一硬伤：新加坡只有 1 个可用区（AD-1），不能像凤凰城那样三个 AD 轮询。
 
+另外提醒一句命令写法：这条配额查询在较新的 OCI CLI 上必须带 `get` 子命令，而且 A1 核心是 AD 级 limit，还得补 `--availability-domain`，否则直接报 `No such option '--service-name'` 或 `Invalid parameter 'availabilityDomain'`：
+
+```bash
+oci limits resource-availability get \
+  --service-name compute \
+  --limit-name standard-a1-core-count \
+  --compartment-id <租户OCID> \
+  --availability-domain <如 xxbw:AP-TOKYO-1-AD-1>
+# → { "available": 2, "used": 0 }   ← 新额度下的免费上限就是 2 核
+```
+
 ## 抢号脚本：429 才是真正的敌人
 
-目标定为 1×2C12G + 2×1C6G，正好打满 4 核配额。没用现成的开源项目，而是写了个几十行的 `grab.sh`：对每个目标调一次 `oci compute instance launch`，按返回分类处理，用 systemd `--user` 服务后台跑（`Linger=yes`，断 SSH 也不停）。可复用的轮询骨架长这样：
+目标定为 1×2C12G + 2×1C6G，正好打满当时 4 核配额（**新额度下这已是历史配置，现在只能开 1 台 2C12G**）。没用现成的开源项目，而是写了个几十行的 `grab.sh`：对每个目标调一次 `oci compute instance launch`，按返回分类处理，用 systemd `--user` 服务后台跑（`Linger=yes`，断 SSH 也不停）。可复用的轮询骨架长这样：
 
 ```bash
 TARGETS=("han-arm-2c12g|2|12" "han-arm-1c6g-a|1|6" "han-arm-1c6g-b|1|6")
@@ -74,16 +88,20 @@ done
 之前以为它们共用一个「总额度」，AMD 不敢碰。实测一查直接打脸，最有力的证据就是：A1 已经用满 4 核了，如果是「总额度」，E2 Micro 就该开不出来，但查出来 Micro 额度还在：
 
 ```bash
-# A1 ARM 核心
-oci limits resource-availability ... --service-name compute \
-  --limit-name standard-a1-core-count
-# → { "available": 246, "used": 4 }      ← 4 核已满（246 是 PAYG 付费天花板，不是免费额度）
+# A1 ARM 核心（新 CLI 需 get 子命令 + AD）
+oci limits resource-availability get --service-name compute \
+  --limit-name standard-a1-core-count \
+  --compartment-id <租户OCID> --availability-domain <AD>
+# → { "available": 2, "used": 2 }        ← 新额度下上限就是 2 核（旧号调整前是 available 246/used 4）
 
 # E2.1.Micro 实例数
-oci limits resource-availability ... --service-name compute \
-  --limit-name vm-standard-e2-1-micro-count
-# → { "available": 2, "used": 0 }        ← 还有 2 台没领！
+oci limits resource-availability get --service-name compute \
+  --limit-name vm-standard-e2-1-micro-count \
+  --compartment-id <租户OCID> --availability-domain <AD>
+# → { "available": 0, "used": 2 }        ← 2 台已领满；未领时是 available 2 / used 0
 ```
+
+> 两个易错点：① limit 名要写准，是 `vm-standard-e2-1-micro-count`（核心数另有 `standard-e2-micro-core-count`）；② 早期文章里 A1 显示 `available: 246` 是 PAYG 付费天花板，**不是免费额度**，别被这个大数字误导，真正的免费上限看新 policy 的 `available`。
 
 再去翻甲骨文官方文档逐字核实（不凭记忆）：Always Free 的「Available Shapes」里，A1 和 AMD Micro 是分开列的两条独立 allocation。AMD 这边永久免费给 2 台 `VM.Standard.E2.1.Micro`，每台 1/8 OCPU + 1G 内存。配置弱得可怜，但白嫖的跳板 / DNS / 探针 / 备用出口足够了。
 
@@ -215,3 +233,45 @@ nohup stress-ng --cpu 1 --cpu-load 30 --timeout 0 >/dev/null 2>&1 &
 - 保号靠 ≥20% CPU 利用率 + 升 PAYG + 账号活跃；5 台机注意 200G 块存储共享上限。
 
 薅羊毛真正的成本不是那 21 小时的等待，而是搞清楚「为什么慢」「为什么被限流」「为什么 AMD 还能再抢」「为什么 IPv6 这条路更稳」——把每个反直觉的现象追到根因，机器才真正变成你的。
+
+## 2026-10 实测复核：按现状改掉的几处
+
+上面是 2026-06 的原始记录。到 2026-10 我在一个东京租户上把整套流程重跑了一遍（OCI CLI 3.95.0 / Ubuntu 24.04 ARM），下面几处原文已经过时或跑不通，按实测结果修订：
+
+**1. 免费额度已从 4C24G 降到 2C12G。** 这是最重要的变化。现在 `standard-a1-core-count` 的 limit 值直接就是 2，`standard-a1-memory-count` 是 12：
+
+```bash
+oci limits resource-availability get --service-name compute \
+  --limit-name standard-a1-core-count \
+  --compartment-id <租户OCID> --availability-domain <AD>
+# → { "available": 2, "used": 0 }     ← 就是免费上限，不再是那个 246
+```
+
+所以本文「1×2C12G + 2×1C6G 打满 4 核」的配置已开不出来，会被 `LimitExceeded` 拒绝。**现在能开的只有 1 台 2C12G**（或 2 台 1C6G）。
+
+**2. `oci limits resource-availability` 必须带 `get` 子命令。** 原文省略了 `get` 的部分写法在旧版 CLI 上或许可行，但在 3.95.0 上会直接报 `Error: No such option '--service-name'`。同时 A1 核心是 AD 级 limit，还**必须**补 `--availability-domain`，否则报 `Invalid parameter 'availabilityDomain'`。
+
+**3. 引导卷的卷性能参数不是顶层选项。** 如果你想自定义启动盘性能和大小，`--boot-volume-vpus-per-gbs`、`--boot-volume-size-in-gbs` 这类顶层参数在新版 CLI 上**并不存在**（实测 `--boot-volume-vpus-per-gbs` 匹配数为 0）。正确做法是走 `--source-details` 的 JSON，且用了它就不能再传 `--image-id`：
+
+```bash
+oci compute instance launch ... \
+  --source-details '{"sourceType":"image",
+    "imageId":"<ARM镜像OCID>",
+    "bootVolumeSizeInGBs":50,
+    "bootVolumeVpusPerGB":120}'
+```
+
+引导卷合法性能档位是 `0/2/4/8/16/32/64/120` VPU/GB（120 是 Ultra High Performance 最高档）；**注意别和块存储（非引导卷）的 `0/10/20/40` 搞混**，那是另一套限制。
+
+**4. 通知用 Server酱比邮件省事。** 原文用邮件，实测 `sctapi.ftqq.com/<SendKey>.send` 一条 curl 就能推微信，省掉 SMTP 授权码那套配置，抢到瞬间到手机：
+
+```bash
+curl -s -X POST "https://sctapi.ftqq.com/<SENDKEY>.send" \
+  --data-urlencode "title=抢到了" --data-urlencode "desp=<IP等信息>"
+```
+
+**5. 一个原文没提、但会害死脚本的坑：轮询分支漏写 sleep。** 实测中「没货」分支如果只打印日志、忘了 `sleep $INTERVAL`，就会无间隔狂打接口——**第 4 次请求就被 429 限流**。修复后连续跑 2 小时零限流。这反过来印证了原文那句「429 才是真正的敌人」：触发它往往不是间隔调太小，而是某个分支压根没睡。
+
+**6. 顺带确认的两件事**：① 东京区可用区数量与新加坡一样，实测同样只有一个 AD-1，多 AD 轮询那套在这些区用不上；② 抢机瓶颈确实在 OCI 后端查容量的 5–30 秒，跟原文判断一致，网络层优化收益可忽略，保持 IP 一致性比换 IP 更重要。
+
+> 复核所用命令与预期输出均来自真实租户验证，非文档推演。免费额度政策可能继续变动，以官方 Always Free 文档为准。
