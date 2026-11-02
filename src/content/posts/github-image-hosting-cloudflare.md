@@ -7,6 +7,8 @@ tags: [GitHub, Cloudflare, 图床, PicGo, 建站]
 category: 技术
 image: ./images/github-image-hosting-cloudflare.avif
 slug: github-image-hosting-cloudflare
+series: "Cloudflare 实战指南：从域名邮箱到 Workers 与 Tunnel"
+seriesOrder: 3
 author: skilladd
 sourceLink: https://skilladd.org/2025/04/25/15.GitHub%E5%9B%BE%E5%BA%8A-Cloudflare%E5%8A%A0%E9%80%9F%E8%AE%BF%E9%97%AE%E6%95%99%E7%A8%8B/
 licenseName: CC BY-NC 4.0

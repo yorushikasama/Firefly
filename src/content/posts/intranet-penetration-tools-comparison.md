@@ -6,6 +6,8 @@ tags: [内网穿透, frp, Tailscale, Cloudflare Tunnel, cpolar, 网络]
 category: 技术
 image: ./images/intranet-penetration-tools-comparison.avif
 slug: intranet-penetration-tools-comparison
+series: "Cloudflare 实战指南：从域名邮箱到 Workers 与 Tunnel"
+seriesOrder: 6
 author: 楪祈
 licenseName: CC BY-NC 4.0
 licenseUrl: https://creativecommons.org/licenses/by-nc/4.0/

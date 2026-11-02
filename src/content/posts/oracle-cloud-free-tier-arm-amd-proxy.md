@@ -7,6 +7,8 @@ tags: [Oracle Cloud, ARM, Cloudflare, 网络]
 category: 技术
 image: ./images/oracle-cloud-free-tier-arm-amd-proxy.avif
 slug: oracle-cloud-free-tier-arm-amd-proxy
+series: "Cloudflare 实战指南：从域名邮箱到 Workers 与 Tunnel"
+seriesOrder: 5
 author: handsomehan
 sourceLink: https://handsomehan.com/blog/2026-06-02-oracle-cloud-free-tier-arm-amd-proxy/
 licenseName: CC BY-NC 4.0

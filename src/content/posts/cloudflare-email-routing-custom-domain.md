@@ -7,6 +7,8 @@ tags: [Cloudflare, 域名邮箱, 邮件转发, Email Routing, 教程]
 category: 技术
 image: ./images/cloudflare-email-routing-custom-domain.avif
 slug: cloudflare-email-routing-custom-domain
+series: "Cloudflare 实战指南：从域名邮箱到 Workers 与 Tunnel"
+seriesOrder: 1
 author: LeeLurker
 sourceLink: https://hexo.leelurker.com/posts/11197
 licenseName: CC BY-NC 4.0

@@ -6,6 +6,8 @@ tags: [Cloudflare, 临时邮箱, 域名邮箱, Workers, 教程]
 category: 技术
 image: ./images/cloudflare-temp-email-domain-tutorial.avif
 slug: cloudflare-temp-email-domain-tutorial
+series: "Cloudflare 实战指南：从域名邮箱到 Workers 与 Tunnel"
+seriesOrder: 2
 author: XiaoHuang
 sourceLink: https://linux.do/t/topic/1666961
 licenseName: CC BY-NC 4.0

@@ -7,6 +7,8 @@ tags: [Fail2ban, Cloudflare, 网站安全, Nginx, 运维]
 category: 运维与安全
 image: ./images/fail2ban-cloudflare-auto-defense.avif
 slug: fail2ban-cloudflare-auto-defense
+series: "Cloudflare 实战指南：从域名邮箱到 Workers 与 Tunnel"
+seriesOrder: 4
 author: skilladd
 sourceLink: https://skilladd.org/2026/05/01/53.Fail2ban%20+%20Cloudflare%20%E6%89%93%E9%80%A0%E7%BD%91%E7%AB%99%E8%87%AA%E5%8A%A8%E9%98%B2%E5%BE%A1%E7%B3%BB%E7%BB%9F/
 licenseName: CC BY-NC 4.0
